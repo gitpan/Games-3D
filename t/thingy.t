@@ -16,6 +16,7 @@ can_ok ('Games::3D::Thingy', qw/
   state output signal add_input add_output link
   insert remove container _update_space 
   del_input del_output
+  outputs inputs
   /);
 
 use Games::3D::Signal qw/SIGNAL_ON SIGNAL_OFF STATE_OFF STATE_ON STATE_FLIP/;

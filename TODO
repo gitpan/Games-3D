@@ -8,6 +8,11 @@ Games::3D:
   when relaying signals) and the real signal origin to be passed around. Or
   maybe add this just as parameters to signal() and output() because this
   saves us the overhead of object creation/destruction!
+* have Thingys send SIGNAL_DIED, SIGNAL_ACTIVATED, SIGNAL_DEACTIVATED
+* Implement "Objective", to track player objectives per level (some that
+  must be fullfilled, some that are optional, and some that should not
+  be fullfilled, as well as changing them from "must/can fullfill" to "no
+  longer necc."
 
 Please send me test-reports, your experiences with this and your ideas - I love
 to hear about my work!

@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-use Test::More tests => 44;
+use Test::More tests => 45;
 use strict;
 
 BEGIN
@@ -51,6 +51,7 @@ is ($link->count(), 1, "once");
 is ($link->count(-1), -1, "infinitely");
 is ($link->count(2), 2, "twice");
 is ($link->count(1), 1, "once");
+is ($link->repeat(), 2000, "2 seconds");
 
 is ($link->once(), 0, 'not an one-shot link');
 is ($link->invert(), 0, 'not an inverted link');
@@ -121,7 +122,7 @@ $t3->state(STATE_OFF);
 
 # inactivate link
 
-$t1->signal($t1,SIGNAL_DEACTIVATE);
+$t1->output($t1,SIGNAL_DEACTIVATE);
 is ($link->is_active(), 0, 'inactive now');
 is ($t3->is_active(), 1, "didn't get releayed");
 is ($t3->state(), STATE_OFF, 't3 off (signal not relayed)');

@@ -44,7 +44,7 @@ sub _init
 
   $self->{count} = 1;				# send signal only once  
   $self->{delay} = 0;				# immidiately
-  $self->{resend} = 2000;			# 2 seconds if count != 1
+  $self->{repeat} = 2000;			# 2 seconds if count != 1
   $self->{rand} = 0;				# exactly
   $self->{once} = 0;				# not once
   $self->{fixed_output} = undef;		# none (just releay)
@@ -113,7 +113,7 @@ sub signal
   if ($self->{count} != 1 || $self->{delay} != 0)
     {
     timer()->add_timer(
-      $self->{delay}, $self->{count}, $self->{resend}, $self->{rand},
+      $self->{delay}, $self->{count}, $self->{repeat}, $self->{rand},
       sub 
         {
         $self->output($input,$sig);
@@ -173,12 +173,12 @@ sub delay
   # Note that the second delay only comes into play if the
   # count() was set to a value different than 1, otherwise each firing of the
   # link will use the first delay again.
-  my ($self,$delay,$rand,$resend) = @_;
+  my ($self,$delay,$rand,$repeat) = @_;
 
   $self->{delay} = abs($delay) if defined $delay;
-  $self->{resend} = abs($resend) if defined $resend;
+  $self->{repeat} = abs($repeat) if defined $repeat;
   $self->{rand} = abs($rand) if defined $rand;
-  ($self->{delay},$self->{resend},$self->{rand});
+  ($self->{delay},$self->{repeat},$self->{rand});
   }
 
 sub count

@@ -14,12 +14,16 @@ as a state (activated, deactivated, on, off etc) as well as the capability
 to send/receive signals and to be linked to other objects.
 
 There is also a C<Link> (which is a C<Thingy> nderneath), which can be used
-to link other C<Thingy>s together in complicated ways (the link basically relays
-signals between the C<Thingy>s).
+to link other C<Thingy>s together in complicated ways (the link basically
+relays signals between the C<Thingy>s).
+
+This allows you to build signal networks, that can track state changes.
 
 In a typical game there would be exist both virtual objects (like Marker and
 SoundSources, Camera) as well es physical objects like NPCs, the Player, Button,
 Switch, Lever etc.
+
+Please see the documentation in lib/Games/3D.pm for a (detailed) overview.
 
 For some background information, as well reasoning why this was developed and
 why in this way, browse to:

@@ -12,7 +12,8 @@ use vars qw/@ISA $VERSION $AUTOLOAD/;
 @ISA = qw/Exporter/;
 
 use Games::3D::Signal qw/
-  STATE_OFF SIGNAL_FLIP SIGNAL_ACTIVATE SIGNAL_DEACTIVATE
+  STATE_OFF STATE_ON
+  SIGNAL_FLIP SIGNAL_ACTIVATE SIGNAL_DEACTIVATE
   SIGNAL_KILL SIGNAL_DIE
   /;
 
@@ -21,6 +22,9 @@ $VERSION = '0.03';
 ##############################################################################
 # protected vars
 
+# each Thingy will get a unique ID, however, upon adding it to the world/level
+# it will get a new ID, local and unique to that world. We could do away with
+# this function here...
   {
   my $id = 1;
   sub ID { return $id++;}
@@ -34,32 +38,44 @@ sub new
   # create a new instance of a thingy
   my $class = shift;
 
+  my $template;
+  $template = shift if ref($_[0]) =~ /::Template/;
+
   my $self = { id => ID() };
   bless $self, $class;
 
   $self->{active} = 1;
-  $self->{parent} = undef;		# not contained in anything yet
-  $self->{contains} = { };		# nothing
+  $self->{_world} = undef;		# not contained in anything yet
+#  $self->{contains} = { };		# nothing
   
-  $self->{state} = STATE_OFF;
   $self->{outputs} = {};
+  $self->{inputs} = {};
   
   $self->{name} = $class;
   $self->{name} =~ s/.*:://;
   $self->{name} = ucfirst($self->{name});
   $self->{name} .= ' #' . $self->{id};
   
+  $self->{states} = [ STATE_OFF, STATE_ON ];	# OFF, ON
+  $self->{state} = 0;
+  
+  $self->{visible} = 0;			# invisible
+  $self->{think_time} = 0;		# never think
+  $self->{next_think} = 0;
+
+  $template->init_thing($self) if $template;
+
   $self->_init(@_);
   }
 
-sub DESTROY
+sub kill
   {
   my $self = shift;
  
   # remove all links from and to ourself 
   $self->unlink();
   # remove ourself from parent if necc.
-  $self->remove();
+  $self->{_world}->unregister($self);
   undef;
   }
 
@@ -102,17 +118,47 @@ sub id
   $self->{id};
   }
 
-#sub can
-#  {
-#  my ($self,$name) = @_;
-#  
-#  print "$self,$name\n";
-#  print "exists $name\n" if $self->attr_exists($name); 
-#  print "second $self,$name\n";
-#  return 0 if $self->attr_exists($name); 
-#  print "second $self,$name\n";
-#  $self->UNIVERSAL::can($self,$name);
-#  }
+sub as_string
+  {
+  my $self = shift;
+
+  my $txt = ref($self) . " {\n";
+  foreach my $k (sort keys %$self)
+    {
+    next if $k =~ /^_/;                                 # skip internal keys
+    my $v = $self->{$k};                                # get key
+    next if !defined $v;                                # skip empty
+    if (ref($v) eq 'HASH')
+      {
+      $v = "{\n";
+      foreach my $key (sort keys %{$self->{$k}})
+        {
+        my $vi = $self->{$k}->{$key};
+        $vi = $vi->as_string() if ref($v);
+        $v .= "    $key = $vi\n";
+        }
+      $v .= "  }";
+      }
+    elsif (ref($v) eq 'ARRAY')
+      {
+      $v = "[ ";
+      foreach my $vi (@{$self->{$k}})
+        {
+        $vi = $vi->as_string() if ref($v);
+        $v .= "$vi, ";
+        }
+      $v =~ /,\s$/;					# remove last ,
+      $v .= "]";
+      }
+    else
+      {
+      $v = '"'.$v.'"' if $v =~ /[^a-z0-9_\.,='"+-]/;
+      next if $v eq '';
+      }
+    $txt .= "  $k = $v\n";
+    }
+  $txt .= "}\n";
+  }
 
 sub new_flag
   {
@@ -261,16 +307,30 @@ sub state
     my $old_state = $self->{state};
     if ($_[0] == SIGNAL_FLIP)
       {
-      $self->{state} = -$self->{state};		# invert()
+      if ($self->{state} <= 1)
+	{
+        $self->{state} = 1 - $self->{state};	# invert()
+        }
+      else
+        {
+        # XXX TODO: thingy with more than 2 states, flip undefined
+        $self->{state} = 0;
+        }
       }
     else
       {
-      $self->{state} = shift;
+      my $s = shift; my $i = 0;
+      for my $st (@{$self->{states}})
+	{
+        $self->{state} = $i or last if $st == $s;
+        $i++;
+	}
       }
     # notify our listeners of all changes
-    $self->output($self->{id},$self->{state}) if $self->{state} != $old_state;
+    $self->output($self->{id},$self->{states}->[$self->{state}])
+     if $self->{state} != $old_state;
     } 
-  $self->{state};
+  $self->{states}->[$self->{state}];
   }
 
 sub signal
@@ -291,7 +351,32 @@ sub signal
     $self->DESTROY();
     return;
     }
+  # if asked to deactivate, do so now
+  if ($sig == SIGNAL_ACTIVATE)
+    { 
+    $self->{active} = 1;
+    return;
+    }
+  if ($sig == SIGNAL_DEACTIVATE)
+    { 
+    $self->{active} = 0;
+    return;
+    }
   $self->state($sig);
+  }
+
+sub inputs
+  {
+  my ($self) = @_;
+  
+  keys %{$self->{inputs}};
+  }
+
+sub outputs
+  {
+  my ($self) = @_;
+  
+  keys %{$self->{outputs}};
   }
 
 sub add_input

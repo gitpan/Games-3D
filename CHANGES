@@ -45,6 +45,17 @@ Games:3D:
   * Thingy: react to DIE and KILL signals
   * Thingy: don't relay ACTIVATE and DEACTIVATE signales
 
+2004-03-02 v0.06 Tels - 83 tests (not released)
+  * Sensor.pm: sense state change and trigger on them
+  * Thingy: inputs(), outputs(): IDs if input/output objects
+  * 3D.pm: wrote a lot of documentation to cover basics and details
+  * added: World.pm: contains everything
+
+2004-03-05 v0.07 Tels - 102 tests
+  * added Template.pm
+  * World.pm: update(), render(), register(), unregister(), thinkers()
+  * Thingy.pm: as_string()
+
 Please send me test-reports, your experiences with this and your ideas - I love
 to hear about my work!
 
