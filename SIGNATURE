@@ -1,0 +1,57 @@
+This file contains message digests of all files listed in MANIFEST,
+signed via the Module::Signature module, version 0.21.
+
+To verify the content in this distribution, first make sure you have
+Module::Signature installed, then type:
+
+    % cpansign -v
+
+It would check each file's integrity, as well as the signature's
+validity.  If "==> Signature verified OK! <==" is not displayed,
+the distribution may already have been compromised, and you should
+not run its Makefile.PL or Build.PL.
+
+-----BEGIN PGP SIGNED MESSAGE-----
+
+SHA1 f3034664c4f4c399801309b6603a0841e6cdb23d BUGS
+SHA1 c173c3f67be5f6c049300a3d1c43468f18de7cb4 CHANGES
+SHA1 3a93c8b7be73dcb5388a0a891e912e1eed36acb5 CREDITS
+SHA1 d6a6c30ee6d9ba6b9afab8bbf6a25e1b23c744e0 LICENSE
+SHA1 9c26ee33dfbbf9d60dbbc9bfb8b35963b48b91aa MANIFEST
+SHA1 77b3ed174d7c003d34b0214b47519606e2529586 Makefile.PL
+SHA1 a575a976b23f61d04a752d64ce188d1d3fb6bf6f README
+SHA1 354e8281cd3c713fa29fac65f982d5fe6928c724 TODO
+SHA1 c0cd9bb72be1ae9517d68759c1514a8ef1e03fa4 example/classes.txt
+SHA1 e4cd53845400f4f8371cfddc77980ee092ee7771 example/game.pl
+SHA1 9e941c675240c6afeed4b75fcd2151e3fc5ed86b example/level00.txt
+SHA1 ce91c894a1ef05a22543ad5df529a36a3d2f11d1 lib/Games/3D.pm
+SHA1 702edd1d9e58443221c17a24351b84bc48a4e4c4 lib/Games/3D/Area.pm
+SHA1 11225dd8959eee3aab89fb4b2fa5bfb58fa7c60a lib/Games/3D/Link.pm
+SHA1 25baf0a21f954ef701439a0d85c034b75a14f84d lib/Games/3D/Living.pm
+SHA1 f6f8078287612b764d0de2f2a46c34254ae7dae7 lib/Games/3D/Marker.pm
+SHA1 456ce3bbc3ea7df14aa26b4bc96029bcc98714ef lib/Games/3D/Physical.pm
+SHA1 262ac5eaaeebc208033bc7efff3a783549755b20 lib/Games/3D/Point.pm
+SHA1 fb05ea17be2ee1bbefc3415c84001bbef5a084ba lib/Games/3D/Signal.pm
+SHA1 c338da728fd397ea8e94fe7a2159447138fe49f3 lib/Games/3D/Thingy.pm
+SHA1 df1b01c94cda7b17b11310720bdadbfefede2cf8 lib/Games/3D/Trigger.pm
+SHA1 1c5ebf613c3259f314928baf5465b49609ba0f70 t/area.t
+SHA1 844b566fe39b8b02f2bcddad575338e33cb060ac t/link.t
+SHA1 eee1810a26356655be76fe0d3f78d26be8608d0c t/living.t
+SHA1 bb4447ded59462bd4acad9c0d2a96c31772d7f88 t/marker.t
+SHA1 0eec73520361bb19cbfa1821ee5084765a6d94a3 t/physical.t
+SHA1 87a5798921c2dbd86c8f4284ec7b05b6fe1f823e t/point.t
+SHA1 10056f39d5a84f59ca128227a8777fd5e175fe7f t/signal.t
+SHA1 e07a4491e4cab7469a4fc2ec53c2d9aa05ae3079 t/thingy.t
+SHA1 6794ff8804c062544371774d93588f4ab063051a t/trigger.t
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.0.6 (GNU/Linux)
+Comment: When cryptography is outlawed, bayl bhgynjf jvyy unir cevinpl.
+
+iQEVAwUBPm5Lz3cLPEOTuEwVAQGGlQf+Pn84AloInU5acO666eyzXfeOiT/joUQ+
+rY/Jn+t/QjudWdAb1OqDNxNgl9Xl4zsM7zv/XTrhfgK+AB0E+hqu1VSbyL1r54iS
+S+Xx+jZLMJ/PnW0JDtsOoqMOEYFV0ci5vx8QDjO4Rw+IBfyyRYUCuKZEvCAZB/a5
+w6dlJUla3cyiCZM9Al7Ns0p9GdrB3nWXP4EVxarcs6IlvL3IoomNmXsvqAjC34oo
+7LaFJbOwLSblJxfP0tlyjGiNjgw68UP0nqqHueeoYEUmjEjetq285E+ckOiMQwQG
+K6ug6tTAgAvTnsNgDU5hYCCyj11VlLPaUDvUrgoxWZycE4gTn2cSHg==
+=baUP
+-----END PGP SIGNATURE-----

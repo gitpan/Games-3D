@@ -1,0 +1,16 @@
+
+############################################################################## 
+Game::3D:
+
+* add:
+ + Game::3D::NPC (Game::3D::Object::Physical::Living::NPC)
+ + Game::3D::Player (Game::3D::Object::Physical::Living::Player)
+ + Game::3D::Light (Game::3D::Object::Light)
+ + Game::3D::Button (Game::3D::Object::Physical::Button)
+ + Game::3D::Switch (Game::3D::Object::Physical::Switch)
+ + Game::3D::Sound (Game::3D::Point::Sound)
+
+Please send me test-reports, your experiences with this and your ideas - I love
+to hear about my work!
+
+Tels <http://bloodgate.com/>

@@ -1,0 +1,48 @@
+# Archetype or class descriptions for sample text game
+Physical {
+  mass => {
+    min => 0,
+    max => 1000000,
+  },
+  model => 'default.md2',
+}
+Living {
+  health => {
+    min => 0,
+    max => 500,
+    on_minimum => [ 'self', 'kill' ],
+  },
+}
+Living::NPC {
+  is_friend => 0,
+}
+Physical::Living::Player {
+  name => 'Player',
+  health => { 
+    min => 0, 
+    max => 100, 
+    on_minimum => [ 'app', 'quit' ],
+  },
+  on_kill => [ 'app', 'quit' ],
+  nutrition => {
+    min => 0, 
+    max => 100,
+    decay => '1/5',
+    check_minimum => 5,
+    on_minimum => [ 'self', 'sub', 'health', 1 ],
+  }
+}
+Physical::Food {
+  on_eat => [ 
+    [ 'other', 'add', 'nutrition', 'self->nutrition' ],
+    [ 'self', 'kill' ],
+  ],
+  on_pickup => [ 'other', 'add', 'morale', 'self->morale_bonus' ],
+  on_drop => [ 'other', 'sub', 'morale', 'self->morale_bonus' ],
+}
+Physical::Food::Apple {
+  nutrition => 5,
+}
+Physical::Food::Mushroom {
+  nutrition => 2,
+}
