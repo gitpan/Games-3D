@@ -1,5 +1,5 @@
 
-# Link - link two objects together and allow sending a signal(s) between them
+# Link - link two objects together and allow sending signal(s) between them
 
 package Games::3D::Link;
 
@@ -8,12 +8,15 @@ package Games::3D::Link;
 use strict;
 
 require Exporter;
-use Games::3D::Signal qw/SIGNAL_FLIP SIGNAL_OFF/;
+use Games::3D::Signal qw/
+  SIGNAL_FLIP SIGNAL_OFF SIGNAL_DIE SIGNAL_KILL
+  SIGNAL_ACTIVATE SIGNAL_DEACTIVATE
+  /;
 use Games::3D::Thingy;
 use vars qw/@ISA $VERSION/;
 @ISA = qw/Exporter Games::3D::Thingy/;
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 ##############################################################################
 # protected class vars
@@ -35,14 +38,18 @@ sub _init
   {
   my $self = shift;
 
+  $self->{input_states} = {};  			# for AND gates
   $self->{inputs} = {};  
+  $self->{outputs} = {};
+
   $self->{count} = 1;				# send signal only once  
   $self->{delay} = 0;				# immidiately
   $self->{resend} = 2000;			# 2 seconds if count != 1
   $self->{rand} = 0;				# exactly
   $self->{once} = 0;				# not once
-  $self->{fixed_output} = undef;		# none
+  $self->{fixed_output} = undef;		# none (just releay)
   $self->{invert} = 0;				# not
+  $self->{and} = 0;				# act as OR gate
   $self;
   }
 
@@ -52,31 +59,51 @@ sub signal
   {
   my ($self,$input,$sig) = @_;
 
-  my $in = $self->{inputs};
+#  my $id = $input; $id = $input->{id} if ref($id);
+#  print "# ",$self->name()," received signal $sig from $id\n";
+
   die ("Unregistered input $input tried to send signal to link $self->{id}")
-   if !exists $in->{$input};
-  if ($sig == SIGNAL_FLIP)
+   if !exists $self->{inputs}->{$input};
+
+  # if the signal is DIE or KILL, DESTROY yourself
+  if ($sig == SIGNAL_DIE || $sig == SIGNAL_KILL)
     {
-    $in->{$input} = - $in->{$input};		# invert()
+    $self->DESTROY();
+    return;
     }
-  else
+  # if the signal is ACTIVATE or DEACTIVATE, (in)activate yourself
+  if ($sig == SIGNAL_ACTIVATE)
     {
-    $in->{$input} = $sig;
+    $self->activate();
+    return;				# don't relay this signal
+    }
+  elsif ($sig == SIGNAL_DEACTIVATE)
+    {
+    $self->deactivate();
+    return;				# don't relay this signal
+    }
+
+  # AND gate: all inputs must be in the same state to send the signal
+  if ($self->{and} && scalar keys %{$self->{inputs}} > 1)
+    {
+    # store the signal at the input (for AND gate)
+    $self->{input_states}->{$input} = $sig;
+    # and check the others
+    my $in = $self->{input_states};
+    foreach my $i (keys %$in)
+      {
+      # if not all match yet, don't send signal
+      return if ($in->{$i} != $sig);
+      }
     }
   return unless $self->{active} == 1;	# inactive links don't send signals
-
-  # all inputs must be in the same state to send the signal
-  my $state = $in->{$input};
-  foreach my $i (keys %$in)
-    {
-    return if ($in->{$i} != $state);
-    }
 
   # if we need to always send the same signal, do so
   if (defined $self->{fixed_output})
     {
     $sig = $self->{fixed_output};
     }
+  # otherwise we might need to invert the signal to be sent
   elsif ($self->{invert})
     {
     $sig = -$sig;				# invert()
@@ -96,7 +123,7 @@ sub signal
   else
     {
     # Send signal straight away. 
-    $self->output($input,$sig);		# $signal from $input
+    $self->output($input,$sig);		# send $sig to all outputs
     }
   $self->deactivate() if $self->{once};
   }
@@ -105,24 +132,44 @@ sub link
   {
   my ($self,$src,$dst) = @_;
 
-  $self->{inputs}->{$src->{id}} = SIGNAL_OFF;
+  $self->{inputs}->{$src->{id}} = $src;
+  if ($self->{and} && scalar keys %{$self->{inputs}} > 1)
+    {
+    $self->{input_states}->{$src->{id}} = SIGNAL_OFF;
+    }
   $self->{outputs}->{$dst->{id}} = $dst;
   $src->add_output($self);			# the link appears as output
   $dst->add_input($self);			# and input at both ends
   }
 
-# override input() to add the input
+sub unlink
+  {
+  # unlink all inputs and outputs from ourself
+  my $self = shift;
+
+  $self->SUPER::unlink();
+
+  $self->{input_states} = {};
+  $self;
+  }
+
+# override input() to also add the input state
 sub add_input
   {
   my ($self,$src) = @_;
 
-  $self->{inputs}->{$src->{id}} = SIGNAL_OFF;
+  $self->{inputs}->{$src->{id}} = $src;
+  if ($self->{and} && scalar keys %{$self->{inputs}} > 1)
+    {
+    $self->{input_states}->{$src->{id}} = SIGNAL_OFF;
+    }
+  $self;
   }
 
 sub delay
   {
   # Sets the initial delay of the link, the delay for each consecutive signal,
-  # and athe randomized offset for these times.
+  # and the randomized offset for these times.
   # Note that the second delay only comes into play if the
   # count() was set to a value different than 1, otherwise each firing of the
   # link will use the first delay again.
@@ -173,6 +220,17 @@ sub fixed_output
   $self->{fixed_output};
   }
 
+sub and_gate
+  {
+  my $self = shift;
+  
+  if (@_ > 0)
+    {
+    $self->{and} = $_[0] ? 1 : 0; 
+    }
+  $self->{and};
+  }
+
 1;
 
 __END__
@@ -185,14 +243,14 @@ Games::3D::Link - link two or more objects together by a signal-relay chain
 
 =head1 SYNOPSIS
 
-	use Games::3D::Object;
+	use Games::3D::Thingy;
 	use Games::3D::Link;
 
 	# send signal straight through
 	my $link = Games::3D::Link->new();
 
-	my $src = Games::3D::Object->new();
-	my $dst = Games::3D::Object->new();
+	my $src = Games::3D::Thingy->new();
+	my $dst = Games::3D::Thingy->new();
 
 	$src->link ($dst, $link);
 
@@ -210,14 +268,18 @@ to the inputs via calling a subroutine (any of on(), off(), flip(), or
 signal()), and the signal will effect the state of the input. Each input will
 remember it's state and is per default in the off state.
 
-When all the inputs are in the the same state, the specified signal (default
-is the state the inputs are in) is sent to all the outputs.
+Each link is by default an OR gate e.g. each incoming signal is relayed
+instantly to each output. 
+
+Youc an use C<< $link->and_gate(1) >> to switch the link to the AND gate
+type.
+
+In this state only when all the inputs are in the the same state, the
+specified signal (default is the state the inputs are in) is sent to all the
+outputs.
 
 This means a link acts like an AND gate, only if all the inputs are in the
-same state, it triggers. Note that there is no need for an OR type of link,
-since you can simple link multiple objects via one link per object to the
-same target, and if only one of the objects sends a signal, the signal would
-arrive at the target.
+same state, it triggers. 
 
 =head1 METHODS
 
@@ -229,9 +291,9 @@ arrive at the target.
 
 You need to call this before any link with delay will work. Pass as argument
 a classname or an object reference. This works best when you pass an
-SDL::App::FPS object :)
+Games::Irrlicht object :)
 	
-	my $app = SDL::App::FPS->new();
+	my $app = Games::Irrlicht->new();
 	Games::3D::Link::timer_provider( $app );
 
 =item new()
@@ -245,7 +307,7 @@ Creates a new link.
 	$link->is_active();
 
 Returns true if the link is active, or false for inactive. Inactive links will
-not relay signals, but the will still maintain their inputs.
+not relay signals, but will still maintain their inputs.
 
 =item activate()
 
@@ -346,7 +408,7 @@ Sets the one-time flag of the link. If set to a true value, the link will
 only re-act to the first signal, and then deactivate itself.
 
 If the link is set to send for each incoming signal more than one signal (via
-delay()), they still will all be sent. Also, each of the outputs of the link
+C<delay()>), they still will all be sent. Also, each of the outputs of the link
 will receive the signal. The once flag is only for the incoming signals, not
 how many go out.
 
@@ -373,11 +435,11 @@ flag.
 
 =head1 AUTHORS
 
-(c) 2003, Tels <http://bloodgate.com/>
+(c) 2003, 2004 Tels <http://bloodgate.com/>
 
 =head1 SEE ALSO
 
-L<Games::3D::Thingy>, L<SDL:App::FPS>, L<SDL::App> and L<SDL>.
+L<Games::3D::Thingy>, L<Games::Irrlicht>
 
 =cut
 

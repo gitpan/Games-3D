@@ -13,11 +13,13 @@ use vars qw/@ISA @EXPORT_OK $VERSION/;
 @EXPORT_OK = qw/ 
   SIGNAL_ON SIGNAL_UP SIGNAL_OPEN
   SIGNAL_OFF SIGNAL_CLOSE SIGNAL_DOWN
-  SIGNAL_FLIP
+  SIGNAL_FLIP SIGNAL_DIE SIGNAL_KILL
+
   SIGNAL_LEFT SIGNAL_RIGHT
   STATE_ON STATE_UP STATE_OPEN
   STATE_OFF STATE_CLOSED STATE_DOWN
   SIGNAL_ACTIVATE SIGNAL_DEACTIVATE
+
   STATE_FLIP
   SIGNAL_LEVEL_WON
   SIGNAL_LEVEL_LOST
@@ -38,9 +40,16 @@ sub SIGNAL_OFF () { -1; }
 sub SIGNAL_CLOSE () { -1; }
 sub SIGNAL_DOWN () { -1; }
 sub SIGNAL_LEFT () { -1; }
-sub SIGNAL_FLIP () { 0; }
-sub STATE_FLIP () { 0; }
 
+sub SIGNAL_FLIP () { 0; }	
+
+# these don't need a state since they are not passed along
+sub SIGNAL_DIE () { -3; }		# DIE and KILL are the same
+sub SIGNAL_KILL () { 3; }
+sub SIGNAL_ACTIVATE () { 2; }
+sub SIGNAL_DEACTIVATE () { -2; }
+
+sub STATE_FLIP () { 0; }
 sub STATE_ON () { 1; }
 sub STATE_OPEN () { 1; }
 sub STATE_UP () { 1; }
@@ -50,10 +59,8 @@ sub STATE_CLOSED () { -1; }
 sub STATE_DOWN () { -1; }
 sub STATE_LEFT () { -1; }
 
-sub SIGNAL_ACTIVATE () { 2; }
-sub SIGNAL_DEACTIVATE () { -2; }
-sub SIGNAL_LEVEL_WON () { 3; }
-sub SIGNAL_LEVEL_LOST () { -3; }
+sub SIGNAL_LEVEL_WON () { 10; }
+sub SIGNAL_LEVEL_LOST () { -10; }
 
 ##############################################################################
 # methods

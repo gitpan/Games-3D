@@ -6,9 +6,7 @@ use strict;
 BEGIN
   {
   $| = 1;
-  unshift @INC, '../blib/lib';
-  unshift @INC, '../blib/arch';
-  unshift @INC, '.';
+  use blib;
   chdir 't' if -d 't';
   use_ok ('Games::3D::Thingy'); 
   }
@@ -16,8 +14,8 @@ BEGIN
 can_ok ('Games::3D::Thingy', qw/ 
   new _init activate deactivate is_active id name
   state output signal add_input add_output link
-  insert remove container _update_space
-  load
+  insert remove container _update_space 
+  del_input del_output
   /);
 
 use Games::3D::Signal qw/SIGNAL_ON SIGNAL_OFF STATE_OFF STATE_ON STATE_FLIP/;

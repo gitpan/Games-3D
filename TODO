@@ -1,14 +1,13 @@
 
 ############################################################################## 
-Game::3D:
+Games::3D:
 
-* add:
- + Game::3D::NPC (Game::3D::Object::Physical::Living::NPC)
- + Game::3D::Player (Game::3D::Object::Physical::Living::Player)
- + Game::3D::Light (Game::3D::Object::Light)
- + Game::3D::Button (Game::3D::Object::Physical::Button)
- + Game::3D::Switch (Game::3D::Object::Physical::Switch)
- + Game::3D::Sound (Game::3D::Point::Sound)
+* signal die() so that we can destroy links in game
+* make Games::3D::Signal into an object which can get passed around instead
+  of a simple number, allowing for TTL (TimeToLive - to avoid infinite loops
+  when relaying signals) and the real signal origin to be passed around. Or
+  maybe add this just as parameters to signal() and output() because this
+  saves us the overhead of object creation/destruction!
 
 Please send me test-reports, your experiences with this and your ideas - I love
 to hear about my work!

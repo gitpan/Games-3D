@@ -1,6 +1,6 @@
 
 ############################################################################## 
-Game:3D:
+Games:3D:
 
 2003-03-02 v0.01 Tels - 166 tests (first version)
  * added Game::3D::Point, w/ 3D center
@@ -32,7 +32,18 @@ Game:3D:
   * forgot to include trigger tests
  Caveat: Some classes like Trigger, Living, Marker, Physical etc might be gone
          from the next version, since they can be replaced by text-definitions
-         in the object hirarchy, completely!
+         in the object hierarchy, completely!
+
+2004-02-29 v0.05 Tels - 73 tests
+  * removed anything except base classes: Thingy.pm, Link.pm and Signal.pm
+  * Links are by default OR gates, but can be switched to AND gate type
+  * Thingy: keep inputs
+  * Thingy: on DESTROY, remove links to and from us, and ourself from
+    parent Thingy 
+  * Thingy: del_input(), del_output(), unlink()
+  * Link: react to DIE, KILL, ACTIVATE, DEACTIVATE and don't relay them
+  * Thingy: react to DIE and KILL signals
+  * Thingy: don't relay ACTIVATE and DEACTIVATE signales
 
 Please send me test-reports, your experiences with this and your ideas - I love
 to hear about my work!

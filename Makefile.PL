@@ -5,7 +5,6 @@ WriteMakefile(
     'NAME'		=> 'Games::3D',
     'VERSION_FROM'	=> 'lib/Games/3D.pm', # finds $VERSION
     'PREREQ_PM'		=> {
-			Games::Object => 0.05,
 			}, # e.g., Module::Name => 1.1
     'LIBS'		=> [ ], # e.g., '-lm'
     'DEFINE'		=> '', # e.g., '-DHAVE_SOMETHING'

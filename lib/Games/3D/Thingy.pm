@@ -7,15 +7,16 @@ package Games::3D::Thingy;
 
 use strict;
 
-use Exporter;
-use Games::Object;
+require Exporter;
 use vars qw/@ISA $VERSION $AUTOLOAD/;
-@ISA = qw/Exporter Games::Object/;
+@ISA = qw/Exporter/;
 
-use Games::3D::Signal
-  qw/STATE_OFF SIGNAL_FLIP SIGNAL_ACTIVATE SIGNAL_DEACTIVATE/;
+use Games::3D::Signal qw/
+  STATE_OFF SIGNAL_FLIP SIGNAL_ACTIVATE SIGNAL_DEACTIVATE
+  SIGNAL_KILL SIGNAL_DIE
+  /;
 
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 ##############################################################################
 # protected vars
@@ -33,7 +34,7 @@ sub new
   # create a new instance of a thingy
   my $class = shift;
 
-  my $self = Games::Object->new( -id => ID() );
+  my $self = { id => ID() };
   bless $self, $class;
 
   $self->{active} = 1;
@@ -54,9 +55,12 @@ sub new
 sub DESTROY
   {
   my $self = shift;
-
-  $self->destroy();	# remove the object from Games::Objects list to free
-			# the memory
+ 
+  # remove all links from and to ourself 
+  $self->unlink();
+  # remove ourself from parent if necc.
+  $self->remove();
+  undef;
   }
 
 sub AUTOLOAD
@@ -84,11 +88,18 @@ sub AUTOLOAD
     if (@_ > 0)
       {
       # more than one argument, need to modify
-      $self->mod_attr( -name => $func, -value => $_[0]);
+      $self->{$func} = $_[0];
       }
-    $self->attr($func);
+    $self->{$func};
     };
   &$func;	# call constructed accessor method using @_
+  }
+
+sub id
+  {
+  my $self = shift;
+
+  $self->{id};
   }
 
 #sub can
@@ -201,7 +212,7 @@ sub remove
     }
   else
     {
-    # try to remove us from out container
+    # try to remove us from our container
     $self->{parent}->remove($self) if (defined $self->{parent});
     }
   }
@@ -221,9 +232,7 @@ sub activate
   {
   my ($self) = shift;
 
-  return 1 if $self->{active} == 1;			 # already active
   $self->{active} = 1;
-  $self->output($self,SIGNAL_ACTIVATE);
   1;
   }
 
@@ -231,9 +240,7 @@ sub deactivate
   {
   my ($self) = shift;
 
-  return 0 if $self->{active} == 0;			 # already inactive
   $self->{active} = 0;
-  $self->output($self,SIGNAL_DEACTIVATE);
   0;
   }
 
@@ -269,16 +276,29 @@ sub state
 sub signal
   {
   # receive signal $sig from input $input, where $input is the sender's ID (not
-  # the link(s) relaying the signal). We ignore here the input.
+  # the link(s) relaying the signal). We ignore here the input. Links relay
+  # their input to their outputs (maybe, delayed , inverted etc), while other
+  # objects receive input, change state (or not) and then maybe output
+  # something.
   my ($self,$input,$sig) = @_;
 
+#  my $id = $input; $id = $input->{id} if ref($id);
+#  print "# ",$self->name()," received signal $sig from $id\n";
+
+  # if asked to die, do so now
+  if ($sig == SIGNAL_DIE || $sig == SIGNAL_KILL)
+    { 
+    $self->DESTROY();
+    return;
+    }
   $self->state($sig);
   }
 
 sub add_input
   {
-  # no-op for Thingies
-  # my ($self,$src) = @_;
+  my ($self,$src) = @_;
+  
+  $self->{inputs}->{$src->{id}} = $src;
   }
 
 sub add_output
@@ -286,6 +306,40 @@ sub add_output
   my ($self,$dst) = @_;
 
   $self->{outputs}->{$dst->{id}} = $dst;
+  }
+
+sub del_input
+  {
+  my ($self,$src) = @_;
+  
+  delete $self->{inputs}->{$src->{id}};
+  }
+
+sub del_output
+  {
+  my ($self,$dst) = @_;
+
+  delete $self->{outputs}->{$dst->{id}};
+  }
+
+sub unlink
+  {
+  # unlink all inputs and outputs from ourself
+  my $self = shift;
+
+  foreach my $out (keys %{$self->{outputs}})
+    {
+    $self->{outputs}->{$out}->del_input($self)
+     if ref($self->{outputs}->{$out});
+    }
+  foreach my $in (keys %{$self->{inputs}})
+    {
+    $self->{inputs}->{$in}->del_output($self)
+     if ref($self->{inputs}->{$in});
+    }
+  $self->{inputs} = {};
+  $self->{outputs} = {};
+  $self;
   }
 
 sub output
@@ -312,166 +366,6 @@ sub link
   $dst->add_input($link);
   $link->add_input($self);			# from us to link
   $link;
-  }
-
-##############################################################################
-# load a class(es) and/or object(s) from a file
-
-# eventuall the code below can be handled by Games::Object
-
-sub DEBUG () { 0 };
-
-sub load
-  {
-  my ($self,$baseclass,$file,$level) = @_;
-
-  $file ||= '';
-  my $line_nr = 0; my $hash = {};
-  my $state = 0; my @ret = ();
-  open my $FILE, $file or die ("Cannot read file '$file': $!");
-  my $target; my $type = 0;
-  while (my $line = <$FILE>)
-    {
-    $line_nr++;
-    next if $line =~ /^#/;	# comment
-    next if $line =~ /^\s*$/;	# empty line
-    chomp($line);
-
-    if ($line =~ /^\s*[\}\]]/)
-      {
-      # closing block sign
-      die ("Unexpected '}' at file $file, line $line_nr") if $state == 0;
-      $state--;
-      if ($state == 0)
-        {
-        push @ret, $hash;
-        $self->_construct($baseclass,$hash);
-        }
-      $target = undef;
-      print "$line\n" if DEBUG;
-      }
-    elsif ($line =~ /^\s*([\w:]+)\s*\{\s*$/)
-      {
-      die ("Error, missing '}' in $file, line $line_nr") if $state != 0;
-      # starting block
-      print "Starting definition for '$1'\n" if DEBUG;
-      $hash = { class => $1 }; $state = 1;
-      }
-    elsif ($line =~ /^\s*([\w]+)\s+=>\s+(.*?)\s*$/)
-      {
-      die ("Error, missing 'Class::Name {' in $file, line $line_nr")
-       if $state == 0;
-      my $res = $2; my $ta = $1;
-      print " " x $state, "$ta => '$res'\n" if DEBUG;
-      if ($res =~ /^\{|\[$/)
-        {
-        # new block
-        die ("Too deeply nested in file $file, line $line_nr") if $state == 2;
-        $state = 2;
-        $hash->{$ta} = {} if $res =~ /^\{/;
-        $hash->{$ta} = [] if $res !~ /^\{/;
-        $target = $hash->{$ta};
-        print "target $target ($ta)\n" if DEBUG;
-        $type = 0; $type = 1 if $res =~ /^\{/;
-        }
-      else
-        {
-        $res = eval("$res");
-        my $t = $hash; $t = $target if defined $target;
-        if (exists $t->{$ta})
-          {
-          if ($type == 0)				# array or hash?
-            {
-            push @{$t->{$ta}}, $res;
-            }
-          else
-            {
-            $t->{$ta} = $res;
-            }
-          }
-        else
-          {
-          $t->{$ta} = $res; 
-          }
-        }
-      }
-    elsif ($line =~ /^\s+(\[.*?\])\s*,\s*$/)
-      {
-      die ("Wrong nesting in file $file, line $line_nr") if $state != 2;
-      print "$line\n" if DEBUG;
-      my $res = eval("$1");
-      my $t = $target;
-      if ($type == 0)				# array or hash?
-        {
-        push @$t, $res; 
-        }
-      else
-        {
-        if (exists $t->{$1})
-          {
-          $t->{$1} = [ $t->{$1} ] unless ref($t->{$1}) eq 'ARRAY';
-          push @{$t->{$1}}, $res;
-          }
-        else
-          {
-          $t->{$1} = $res; 
-          }
-        }
-      }
-   else
-      {   
-      print "Ignoring $line\n" if DEBUG;
-      }
-    }
-  die ("Error, missing '}' in $file, line $line_nr") if $state != 0;
-  close $FILE;
-  \@ret;
-  }
-
-sub _construct
-  {
-  my ($self,$baseclass,$hash) = @_;
-
-  my $type = 'CLASS'; $type = 'OBJECT' if exists $hash->{id};
-  print "constructing $type $baseclass"."::$hash->{class}\n" if DEBUG;
-
-  my $object = $hash->{class};
-
-  my $class = $baseclass . '::' . $hash->{class};
-  if ($type eq 'CLASS')
-    {
-    my $def = <<CLASS
-
-	package $class;
-	use strict;
-	use vars qw/\@ISA/;
-	\@ISA = qw/$baseclass/;
-
-	sub _init
-	  {
-	  my \$self = shift;
-
-	  my \$args = \$_[0];
-	  \$args = { \@_ } unless ref \$args eq 'HASH';
-
-	  \$self\->SUPER::_init(\@_);
-
-	  \$self;
-	  }
-
-CLASS
-    ;
-    print "Using '$def'\n" if DEBUG;
-    eval ($def);
-    } 
-  else
-    {
-    print "new\n" if DEBUG;
-    $object = $class->new( $hash );
-    print "result $object\n" if DEBUG;
-    }
-  print "Done\n" if DEBUG;
-  $object;
   }
 
 1;
@@ -694,49 +588,32 @@ Note that each flip signal will start the next flip signal.
   	$thingy->output($source,$signal);
 
 Sends the signal C<$signal> to all the outputs that were registered with that
-thingy and tells the receiver that the signal came from C<$source>. Example:
+thingy and tells the receiver that the signal came from C<$source>. Example
+to send one signal from the thingy itself (instead of relaying it):
 
 	$thingy->output($thingy->{id}, SIGNAL_ON);
 
-=item load()
+=item del_output()
 
-	$thingy->load($baseclass,$file,$difficulty_level);
+	$thingy->del_output( $listener );
 
-This loads a file and reads the class and object definitions in this file.
-The classes and objects are then constructed as subcalsses of $baseclass
-as they are read in. This basically pullsin the entire object hirarchy plus
-all the objects, although it make sense to keep them in two seperate files
-and load first the hirarchy, then the objects:
+Call to remove C<$listener> from the list of outputs from C<$thingy>. 
 
-	$thingy->load('Games::3D::Object','hirarchy.txt');
-	$world = $thingy->load('Games::3D::Object','world.txt');
-	$level = $thingy->load('Games::3D::Object','level00.txt',1);
+=item del_input()
 
-The first line loads the hirachy (this doesn't contain any objects, so we
-discard the return value, although it might be safer to check for stray
-objects), then loads all the basic world objects (like: player, camera,
-quests etc and constructs them), and then it loads level 0, and constructs
-all the objects from there. The difficulty level is set to 1, meaning any
-object that is defined not to appear in level 1 (like: 1 means C<Easy>, and
-a certain blocking door is not there in C<Easy>, but only in C<Hard> and
-C<Expert>) will not be constructed in the first place. This is faster than
-constructing them, and then throwing them away.
+	$thingy->del_input( $listener );
 
-=item _construct()
-
-	$thingy->_construct($baseclass,$hash);
-
-This is called by L<load()> for each object or class to be constructed.
+Call to remove C<$listener> from the list of inputs from C<$thingy>. 
 
 =back
 
 =head1 AUTHORS
 
-(c) 2002, 2003, Tels <http://bloodgate.com/>
+(c) 2002 - 2004 Tels <http://bloodgate.com/>
 
 =head1 SEE ALSO
 
-L<Games::3D>, L<SDL:App::FPS>, L<SDL::App> and L<SDL>.
+L<Games::3D>, L<Games::Irrlicht>.
 
 =cut
 

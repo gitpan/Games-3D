@@ -9,7 +9,7 @@ use strict;
 
 use vars qw/$VERSION/;
 
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 1;
 
@@ -39,6 +39,11 @@ This package is just the basis documentation for all the classes contained
 under Games::3D. It does not need to be used, unless you want to require a
 specific version of this package.
 
+=head2 Signals and Links
+
+Here follows an in-depth description of what the signals and links provided
+by that package do and how you can use them in actual games.
+
 =head1 METHODS
 
 This package defines no methods.
@@ -49,14 +54,13 @@ None known yet.
 
 =head1 AUTHORS
 
-(c) 2003, Tels <http://bloodgate.com/>
+(c) 2003, 2004 Tels <http://bloodgate.com/>
 
 =head1 SEE ALSO
 
-L<SDL:App::FPS>, L<SDL::App> and L<SDL>.
+L<Games::Irrlicht>
 
-L<GAME::3D::Point>.  L<GAME::3D::Area>.  L<GAME::3D::Vector>.
-L<GAME::3D::Brush>.  L<GAME::3D::Level>.  L<GAME::3D::Link>.
+L<GAMES::3D::Thingy>, L<GAMES::3D::Link>, L<GAMES::3D::Signal>.
 
 =cut
 
