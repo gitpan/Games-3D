@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-use Test::More tests => 20;
+use Test::More tests => 21;
 use strict;
 
 BEGIN
@@ -59,3 +59,27 @@ $thingy->signal(1,SIG_ON);
 $thingy->update(2);
 is ($thingy->state(), STATE_ON, "is on again");
 
+#############################################################################
+# as_string() and from_string()
+
+my @lines;
+while (my $line = <DATA>) { push @lines, $line; }
+
+is (join('',@lines), $thingy->as_string(), 'as_string');
+
+1;
+
+__DATA__
+Games::3D::Thingy {
+  active = 1
+  id = 1
+  name = "Thingy #1"
+  next_think = 0
+  state = 1
+  state_0 = [ 1, ]
+  state_1 = [ 1, ]
+  state_endtime = 0
+  state_target = 1
+  think_time = 0
+  visible = 0
+}

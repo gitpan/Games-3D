@@ -9,7 +9,7 @@ use strict;
 
 use vars qw/$VERSION/;
 
-$VERSION = '0.08';
+$VERSION = '0.09';
 
 1;
 
@@ -91,6 +91,87 @@ particular state change.
 
 The world contains C<Thingy>s, C<Link>s and C<Sensors>.
  
+=head2 Templates
+
+Templates are blueprints for objects. Each template describes a class of
+objects, their valid settings as well as default values for these settings.
+
+C<Thingy>s belong to a class, and Templates descirbe these classes.
+The template list is hirarchival, meaning templates for subclasses inherit
+all settings from their parent class. Here is an example for a template list:
+
+	Virtual {
+	  base = 'Games::3D::Thingy'
+	  visible = off
+	}
+
+	Virtual::Link {
+	  base = 'Games::3D::Link'
+	}
+
+	Virtual::Sensor {
+	  base = 'Games::3D::Sensor'
+	}
+
+	Physical {
+	  model = "default.md2"
+	  visible = 1
+	}
+
+	Physical::Light {
+	  r = FRACT=0
+	  g = FRACT=0
+	  b = FRACT=0
+	  a = FRACT=0
+	  state_0 = [ 75, a, 0 ]
+	  state_1 = [ 250, a, 1 ]
+	}
+
+The first three templates describe virtual (invisible) objects with different
+base classes. The last two are physical (visible) objects (their base class
+is automatically C<Games::3D::Thingy>).
+
+Note that C<Virtual::Link> inherits the C<visible = off> setting from
+C<Virtual>!
+
+There are a few settings that are common to all templates and don't need to
+be defined - everything else can be defined at will, to describe complex game
+environments. Here is an overview with their names and default values:
+
+=over 2
+
+=item visible = BOOL=off
+
+Flag to tell whether the object is visible (needs rendering) or not.
+
+=item active = BOOL=on
+
+Flag to tell whether the object is active (receiving/relaying signals) or not.
+
+=item base = STR="Games::3D::Thingy"
+
+The underlying base object class.
+
+=item id = INT=
+
+The unqiue ID of the object. Will be automatically set. Read-only.
+
+=item name = STR=
+
+The name of the object. A 'Physical::Light' with ID=2 will have a default
+name of 'Light #2'. The name is usefull for refering objects by name, instead
+by the (possible changing) ID.
+
+=item info = STR=
+
+Short info text, that will be displayed in-game if someone looks at the
+object.
+
+=back
+
+Since the Template defines an object with default settings, it is possible
+to construct new objects in-game just by giving the template name.
+
 =head2 Thingys
 
 Each C<Thingy> has the ability to link itself to another object. If the
@@ -137,7 +218,7 @@ Signals that are not relayed:
 =item SIG_DIE, SIG_KILL
 
 This causes the object that receives the signal to be destroyed.
-It will send out a SIG_DESTROYED to all linked objects.
+It will send out a SIG_KILLED to all linked objects to announce it's death.
 
 =item SIG_ACTIVATE, SIG_DEACTIVATE
 
@@ -151,6 +232,8 @@ respectively a SIG_DEACTIVATED to all linked objects.
 =back
 
 Signals that are relayed:
+
+=over 2
 
 =item SIG_ON, SIG_OFF
 
@@ -236,6 +319,86 @@ sensor attaches either to a specific object ("Player"), or to an entire
 class ("->Food"). The sensor also announces what type of change it wants
 to watch, for instance 'origin', 'health', 'position', 'age' etc. Whenever
 this value changes, the sensor get's notified. 
+
+=head2 Events
+
+There are certain events than can occur to an object. These are specified
+with a 'on_' prefix in the L<Templates> like:
+
+	Physical::Switch {
+	  on_frob = SIG_FLIP
+	}
+	Physical::Loot {
+	  on_frob = CODE="$src->add($self)"
+	}
+
+The notation of a single signal is shorthand for
+C<CODE="$self->signal($src,SIG_...)"> and means that on the event the object
+will send itself the specified signal.
+
+C<$src> is the object that caused the event. C<$self> is the object that
+the event is happening to.
+
+Here is a short overview of the possible events:
+
+=over 2
+
+=item frob
+
+The player (or an NPC) I<frobbed> the object. To frob means to touch, to
+use. For instance, the player walks to a switch and then uses it.
+
+=item apply
+
+Objects (Player, NPCs) can only C<apply> items that are in their inventory.
+
+The object in question gets applied to the source object, e.g. the Player
+would eat the food object, or drink a potion.
+
+=item use
+
+Objects (Player, NPCs) can only use items that are in their inventory.
+
+C<on_use> is very similiar to C<on_apply>, except that the object is 
+used on a different object in the world, not the one that posesses it.
+
+For instance, the player might use a key on a door.
+
+=item kill
+
+This event 'occurs' just before the object gets killed.
+
+=back
+
+There might be more events, like C<heal> or C<hurt> but it is currently
+whether these need to be distinct events, or can fall under the
+C<decreased_value> and C<increased_value> events.
+
+=head2 Code
+
+Objects can have snippets of code that is executed upon an event. The code
+does have some predefined variables, here is a short overview:
+
+=over 2
+
+=item $src
+
+The object that initiated/triggered the event.
+
+=item $self
+
+The object on that the event is triggered.
+
+=item $target
+
+The object on that C<$self> should be used on (only for C<on_use> event).
+
+=item $world
+
+The world, contains the entire object system. One usefull method to call on
+that object is for instance C<< $world->create('Some::Class::Here') >>.
+
+=back
 
 =head1 EXAMPLES
 
@@ -363,6 +526,12 @@ We have just created a loop, flipping the first lever would flip the second,
 which would send ON to the first, which would send ON to the second, which
 would send ON to the first etc. etc. However, the network will prevent this
 by not relaying signals from the originating object back to itself.
+
+Another thing is that the door will receive each signal twice: Flipping
+the first lever will route a SIG_ON to the door, as well as the second
+lever, which, since it is connected to the door, would also relay it's
+ON signal to the door. This works, though, since the door will ignore multiple
+signals of the same type.
 
 =head2 Sound and delayed action
 

@@ -21,4 +21,5 @@ t/sensor.t
 t/template.t
 t/thingy.t
 t/world.t
+t/data/templates.txt
 META.yml                                 Module meta-data (added by MakeMaker)

@@ -37,7 +37,7 @@ while (my $line = <DATA>) { push @lines, $line; }
 
 is ($tpl->as_string(), join ('',@lines), 'as string');
 
-my $def_keys = 12;
+my $def_keys = 15;
 is ($tpl->keys(), $def_keys, '5 defaults');
 
 is ($tpl->add_key('foo', 'STRING="abcdef"'), $tpl, 'added key');
@@ -77,21 +77,20 @@ is ($tpl->validate($thingy), undef, 'validated ok');
 1;
 
 __DATA__
-Games::3D::Template {
-  class = "Games::3D::Thingy"
-  id = 1
-  valid = {
-    active = BOOL=true
-    id = INT=
-    inputs = ARRAY=0
-    name = STRING=
-    next_think = INT=0
-    outputs = ARRAY=0
-    state = INT=0
-    state_endtime = INT=
-    state_target = INT=
-    states = ARRAY=-1,1
-    think_time = INT=0
-    visible = BOOL=false
-  }
+Games::3D::Thingy {
+  active = BOOL=true
+  class = STR=
+  id = INT=
+  info = STR=
+  inputs = ARRAY=0
+  name = STR=
+  next_think = INT=0
+  outputs = ARRAY=0
+  state = INT=0
+  state_0 = ARRAY=1
+  state_1 = ARRAY=1
+  state_endtime = INT=
+  state_target = INT=
+  think_time = INT=0
+  visible = BOOL=false
 }

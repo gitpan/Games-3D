@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-use Test::More tests => 13;
+use Test::More tests => 17;
 use strict;
 
 BEGIN
@@ -12,6 +12,9 @@ BEGIN
     qw/ SIG_ON SIG_OFF STATE_OFF STATE_ON
         SIG_FLIP
 	SIG_DIE
+	SIG_KILLED
+	SIG_UNKNOWN
+
 	SIG_LEFT SIG_RIGHT SIG_UP SIG_DOWN
 	SIG_OPEN SIG_CLOSE SIG_ACTIVATE SIG_DEACTIVATE
 	SIG_LEVEL_WON
@@ -39,4 +42,16 @@ is (Games::3D::Signal->invert(SIG_DIE), SIG_DIE, 'DIE => DIE');
 is (Games::3D::Signal->invert(SIG_FLIP), SIG_FLIP, 'FLIP => FLIP');
 
 is (Games::3D::Signal->invert(SIG_STATE_0), SIG_STATE_0, 'STATE_0 => STATE_0');
+is (Games::3D::Signal->invert(SIG_KILLED), SIG_KILLED, 'KILLED => KILLED');
+
+# name from signal, and signal from name
+
+is (Games::3D::Signal::signal_name(SIG_STATE_0), 'SIG_STATE_0(100)', 
+  'signal_name');
+
+is (Games::3D::Signal::signal_by_name('SIG_DIE'), SIG_DIE, 
+  'signal_from_name');
+is (Games::3D::Signal::signal_by_name('SIG_STATE_0'), SIG_STATE_0, 
+  'signal_from_name');
+
 

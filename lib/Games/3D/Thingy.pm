@@ -14,12 +14,12 @@ use vars qw/@ISA $VERSION $AUTOLOAD/;
 use Games::3D::Signal qw/
   STATE_OFF STATE_FLIP STATE_ON STATE_0
   SIG_FLIP SIG_ACTIVATE SIG_DEACTIVATE
-  SIG_DIE SIG_NOW_0
+  SIG_DIE SIG_NOW_0 SIG_KILLED
   state_from_signal
   signal_from_state signal_name
   /;
 
-sub DEBUG () { 1; }
+sub DEBUG () { 0; }
 
 $VERSION = '0.04';
 
@@ -67,23 +67,21 @@ sub new
   $self->{state_target} = 0;			# target state (from current)
 
   # example:
-  $self->{states} = [
-    [
+  $self->{state_0} = [
     1,						# ms to change to this state
 # example:
 #    'light_r' => 0,	  			# light off
 #    'light_g' => 0,	  			# light off
 #    'light_b' => 0,	  			# light off
 #    'light_a' => 0,	  			# light off
-    ],
-    [
+    ];
+  $self->{state_1} = [
     1,
 # example:
 #    'light_r' => 1.0,	  			# light on
 #    'light_g' => 1.0,	  			# light on
 #    'light_b' => 0,	  			# light on
 #    'light_a' => 1.0,	  			# light on
-    ],
    ];
   
   $self->{visible} = 0;			# invisible
@@ -97,13 +95,28 @@ sub new
 
 sub kill
   {
-  my $self = shift;
- 
+  my ($self,$src) = @_;
+
+  $self->event($src,'kill'); 
+
+  # send SIG_KILLED to all our links to announce our test
+  $self->output($self, SIG_KILLED);
+
   # remove all links from and to ourself 
   $self->unlink();
+
   # remove ourself from parent if necc.
-  $self->{_world}->unregister($self);
+  $self->{_world}->unregister($self) if $self->{_world};
+
   undef;
+  }
+
+sub event
+  {
+  # when an event (frob, use, kill etc) occurs, this routine handles it
+  my ($self,$src,$event) = @_;
+
+  &{$self->{"_event_$event"}}($self,$src) if $self->{"_event_$event"};
   }
 
 sub AUTOLOAD
@@ -117,7 +130,7 @@ sub AUTOLOAD
   my $class = $func; 
   $func =~ s/.*:://;		# remove package
   $class =~ s/::[^:]+$//;	# keep package
-  # return if $func eq 'DESTROY';	# we have DESTROY, so not necc. here
+  return if $func eq 'DESTROY';	# we have DESTROY, so not necc. here
  
 #  print "autoload for $class $func\n";
   no strict 'refs';
@@ -157,6 +170,7 @@ sub as_string
     next if !defined $v;                                # skip empty
     if (ref($v) eq 'HASH')
       {
+      next if scalar keys %$v == 0;
       $v = "{\n";
       foreach my $key (sort keys %{$self->{$k}})
         {
@@ -168,6 +182,7 @@ sub as_string
       }
     elsif (ref($v) eq 'ARRAY')
       {
+      next if scalar @$v == 0;
       $v = "[ ";
       foreach my $vi (@{$self->{$k}})
         {
@@ -214,30 +229,6 @@ sub new_flag
   }
 
 BEGIN { no warnings 'redefine'; }
-
-sub is
-  {
-  my ($self,$flag) = @_;
-
-  if (!exists $self->{$flag})
-    {
-    require Carp;
-    Carp::croak ("Flag '$flag' does not exist at $self");
-    }
-  $self->{$flag};
-  }
-
-sub make
-  {
-  my ($self,$flag) = @_;
-
-  if (!exists $self->{$flag})
-    {
-    require Carp;
-    Carp::croak ("Flag '$flag' does not exist at $self");
-    }
-  $self->{$flag} = 1;
-  }
 
 sub _init
   {
@@ -362,7 +353,7 @@ sub state
       my $now = 0;
       $now = $self->{_world}->time() if $self->{_world}; 
       $self->{state_endtime} = $now +
-       ($self->{states}->[ $newstate ]->[0] || 1);	# avoid state changes
+       ($self->{"state_$newstate"}->[0] || 1);	# avoid state changes
 							# that take no time
       $self->{state_target} = $newstate;
       # notifing our listeners will be done when the state change is complete
@@ -387,7 +378,7 @@ sub signal
   # if asked to die, do so now
   if ($sig == SIG_DIE)
     { 
-    $self->DESTROY();
+    $self->kill();
     return;
     }
   # if asked to deactivate, do so now
@@ -507,7 +498,12 @@ sub update
   return if $self->{state_endtime} == 0;	# no change neccessary
   
   # for all fields in the target state, interpolate them
-  my @states = @{$self->{states}->[$self->{state_target}]};
+  my $s = "state_$self->{state_target}";
+  if (!exists $self->{$s})
+    {
+    $self->{$s} = [1];
+    }
+  my @states = @{$self->{$s}};
 
   if ($tick >= $self->{state_endtime})		# overdue
     {
@@ -524,6 +520,7 @@ sub update
 
     while (@states > 0)
       {
+      # set a => 1 (f.i.)
       $self->{$states[0]} = $states[1];
       splice @states,0,2;			# throw away first two entries
       }
@@ -533,7 +530,7 @@ sub update
   my $time = shift @states;			# field 0 is the time it takes
  
   # get the values from the current state 
-  my @cur_states = @{$self->{states}->[$self->{state}]};
+  my @cur_states = @{$self->{"states_$self->{state}"}};
   shift @cur_states;				# dont need field 0
 
   # factor: endtime - time = starttime		# 200 - 100 = 100
@@ -553,6 +550,45 @@ sub update
     splice @cur_states,0,2;			# throw away first two entries
     }
   1;						# more changes to do
+  }
+
+##############################################################################
+# field access
+
+sub is
+  {
+  my ($self,$flag) = @_;
+
+  if (!exists $self->{$flag})
+    {
+    require Carp;
+    Carp::croak ("Flag '$flag' does not exist at $self");
+    }
+  $self->{$flag};
+  }
+
+sub make
+  {
+  my ($self,$flag) = @_;
+
+  if (!exists $self->{$flag})
+    {
+    require Carp;
+    Carp::croak ("Flag '$flag' does not exist at $self");
+    }
+  $self->{$flag} = 1;
+  }
+
+sub get
+  {
+  my ($self,$field) = @_;
+
+  if (!exists $self->{$field})
+    {
+    require Carp;
+    Carp::croak ("Field '$field' does not exist at " . $self->name());
+    }
+  $self->{$field};
   }
 
 1;

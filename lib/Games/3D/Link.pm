@@ -19,7 +19,7 @@ use vars qw/@ISA $VERSION/;
 
 $VERSION = '0.03';
 
-sub DEBUG () { 1; }
+sub DEBUG () { 0; }
 
 ##############################################################################
 # protected class vars
@@ -73,7 +73,7 @@ sub signal
   # if the signal is DIE, DESTROY yourself
   if ($sig == SIG_DIE)
     {
-    $self->DESTROY();
+    $self->kill();
     return;
     }
   # if the signal is ACTIVATE or DEACTIVATE, (in)activate yourself

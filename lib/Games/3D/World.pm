@@ -10,8 +10,9 @@ use strict;
 require Exporter;
 use vars qw/@ISA @EXPORT_OK $VERSION/;
 @ISA = qw/Exporter/;
+use Games::3D::Template;
 
-$VERSION = '0.01';
+$VERSION = '0.06';
 
 ##############################################################################
 # protected vars
@@ -35,6 +36,7 @@ sub new
   $self->{things} = { };
   $self->{render} = { };
   $self->{thinks} = { };
+  $self->{templates} = {};
   reset_ID();
 
   if (@_ == 2)
@@ -62,8 +64,41 @@ sub load_from_file
 sub load_templates
   {
   my ($self,$file) = @_;
- 
+
+  if (!ref($file))
+    {
+    # got filename, so read in data
+    open FILE, "$file" or die ("Cant read $file: $!");
+    local $/ = undef;				# slurp mode
+    my $doc = <FILE>;
+    $file = \$doc;
+    close FILE; 
+    }
+
+  $self->{templates} = {};
+  my @objects = Games::3D::Template::from_string($$file);
+
+  if (@objects == 1 && !ref($objects[0]))
+    {
+    die($objects[0]);
+    }
+  foreach my $o (@objects)
+    {
+    if (exists $self->{templates}->{$o->{class}})
+      {
+      warn ("Template for class $o->{class} already seen");
+      }
+    $self->{templates}->{$o->{class}} = $o;
+    $o->{_world} = $self;
+    }
+
   $self;
+  }
+
+sub templates
+  {
+  my $self = shift;
+  scalar keys %{$self->{templates}};
   }
 
 sub save_templates
@@ -176,6 +211,23 @@ sub render
   $self;
   }
 
+sub create
+  {
+  # create an object based on a template (class name)
+  my ($self,$class) = @_;
+
+  return undef if !exists $self->{templates}->{$class};
+  $self->{templates}->{$class}->create_thing();
+  }
+
+sub find_template
+  {
+  # given a class name, return the template object for it
+  my ($self,$class) = @_;
+
+  $self->{templates}->{$class};
+  }
+
 sub id { 0; }
 
 1;
@@ -235,6 +287,9 @@ Exports nothing on default.
 
 =head1 DESCRIPTION
 
+This class represents the entire in-game object system. It contains
+I<Templates>, e.g. the blue-prints for objects, as well as the objects itself.
+
 =head1 METHODS
 
 =over 2
@@ -251,11 +306,12 @@ Creates a new game world/level and reads in the templates from C<$file>.
 
 Load the game world/level from a file, replacing all existing data.
 
-=item load_from_file()
+=item load_templates()
 
 	$world->load_templates( $templates_file );
 
-Loads the templates from a file.
+Loads the templates from a file. Alternatively, if given a scalar ref,
+will I<load> the templates from the contents of the scalar.
 
 =item save_to_file()
 
@@ -271,9 +327,50 @@ ref to error message.
 Save game world/level to a file, returns undef for success, otherwise
 ref to error message.
 
+=item templates()
+
+	print "I have ", $world->templates(), " templates\n";
+
+Returns the number of templates the world currently knows about.
+
+=item render()
+
+	$world->render();
+
+Calls the method C<render()> on all things that want to be rendered.
+
+=item update()
+
+	$world->update( $now );
+
+Let's all objects that want to think regulary think, and then updates 
+objects that need updating. After this call, each object represents the
+the state if has at the time C<$now>.
+
+=item time()
+
+	$world->time( );
+
+Return the current time. Usefull for objects that want to know the time,
+because L<update()> might cause some object to send a signal to another
+object, and the second one needs to know when the signal arrives.
+
+=item create()
+  
+	my $object = $world->create($class);
+
+Create an object based on a template (class name) and populate it's settings
+with the default values.
+
+=item find_template()
+
+	my $template_object = $world->find_template($class);
+
+Given a class name, return the template object for it..
+
 =head1 AUTHORS
 
-(c) 2004 Tels <http://bloodgate.com/>
+(c) 2003, 2004 Tels <http://bloodgate.com/>
 
 =head1 SEE ALSO
 

@@ -1,6 +1,6 @@
 
 ############################################################################ 
-Game::3D - classes to represent 3D points and objects
+Games::3D - package to provide an in-game object and scripting system
 
 =pod
 
@@ -17,25 +17,26 @@ There is also a C<Link> (which is a C<Thingy> nderneath), which can be used
 to link other C<Thingy>s together in complicated ways (the link basically
 relays signals between the C<Thingy>s).
 
-This allows you to build signal networks, that can track state changes.
+This allows you to build signal networks that can track state changes.
 
 In a typical game there would be exist both virtual objects (like Marker and
 SoundSources, Camera) as well es physical objects like NPCs, the Player, Button,
 Switch, Lever etc.
 
-Please see the documentation in lib/Games/3D.pm for a (detailed) overview.
+Please see the documentation in lib/Games/3D.pm for an overview and a very
+detailed discussion.
 
 For some background information, as well reasoning why this was developed and
 why in this way, browse to:
 
-	http://bloodgate.com/perl/sdl/game.html
+	http://bloodgate.com/perl/game/
 
 Installation
 ============
 
-* untar/ungzip the package (replace 0.05 with the version you got)
+* untar/ungzip the package (replace 0.09 with the version you got)
 
-	tar -xzf Games-3D-0.05.tar.gz
+	tar -xzf Games-3D-0.09.tar.gz
 
 * Check the signature. Download my key from http://bloodgate.com/tels.asc or
   from my CPAN directory. Then do in the build directory (where you unwrapped

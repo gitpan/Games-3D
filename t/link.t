@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-use Test::More tests => 49;
+use Test::More tests => 52;
 use strict;
 
 BEGIN
@@ -146,6 +146,19 @@ is ($t3->state(), STATE_OFF, 't3 off (signal not relayed)');
 $t1->signal($t1,SIG_FLIP);
 is ($t3->state(), STATE_OFF, 't3 is still off (link inactive)');
 
+#############################################################################
+# kill thingy and observe SIG_KILLED
+
+$link->activate();
+is ($link->is_active(), 1, 'active again');
+$link->{fixed_output} = SIG_ON;
+
+# this will send SIG_KILLED, the link will convert this to SIG_ON and t3
+# must be ON after that
+is ($t3->state(), STATE_OFF, 't3 is still off (link inactive)');
+$t1->kill();
+$t3->update(4);
+is ($t3->state(), STATE_ON, 't3 is now on');
 
 #############################################################################
 

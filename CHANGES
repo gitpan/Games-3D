@@ -61,12 +61,35 @@ Games:3D:
   * removed SIG_KILL
   * added 15 states (STATE_0..STATE_15) and signals so that you can send these
     to objects to change their state
-  * added 15 signales (SIG_NOW_0) so objects can announce when they finished
-    changing their state
+  * added 15 signales (SIG_NOW_0..SIG_NOW_15) so objects can announce when
+    they finished changing their state
   * SIG_ON and SIG_OFF (and their aliases) switch between STATE_0 and STATE_1
   * World: cache time upon update, added method time()
   * added an update() routine to Thingy so that state transitions can happen
 
+2004-03-21 v0.09 Tels - 129 tests
+  * Thingy:
+    + added get(), and fixed is() and make() for fields
+    + also Link, Sensor: call kill(), not DESTROY()
+    + kill() sends out SIG_KILLED
+    + don't output empty arrays/hashes in as_string()
+    + also Template: store states as key 'state_0', not under 'states->[0]'
+    + only unregister with world if actually contained in a world
+  * Templtate:
+    + fixed bug in from_string(), can now read more than one template in a row
+    + simplify as_string() output, from_string() reads back this format
+    + honour field 'base' to set base class ('Thingy', 'Link' etc)
+    + init_thing() has inheritance ('Foo::Bar' inherits defaults from 'Foo')
+    + fixed bug in init_thing() regarding existing fields
+    + init_thing() can deal with typeless defaults ("foo" vs STR="foo")
+  * Signal:
+    + added SIG_UNKNOWN
+    + map signal names <=> signal numbers (signal_name(), signal_by_name()) 
+  * World: 
+    + load templates really from a file, added tests for that
+    + find_template()
+  * added some more doc for methods in World, Template etc
+  
 Please send me test-reports, your experiences with this and your ideas - I love
 to hear about my work!
 

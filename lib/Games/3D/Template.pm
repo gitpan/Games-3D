@@ -11,7 +11,7 @@ require Exporter;
 use vars qw/@ISA $VERSION/;
 @ISA = qw/Exporter/;
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 ##############################################################################
 # protected vars
@@ -38,10 +38,11 @@ sub new
   bless $self, $class;
 
   $self->{valid} = { 
-    name => 'STRING=',
+    name => 'STR=',
     id => 'INT=',
     state => 'INT=0',
-    states => 'ARRAY=-1,1',
+    state_0 => 'ARRAY=1',
+    state_1 => 'ARRAY=1',
     visible => 'BOOL=false',
     active => 'BOOL=true',
     think_time => 'INT=0',
@@ -50,6 +51,8 @@ sub new
     outputs => 'ARRAY=0',
     state_endtime => 'INT=',
     state_target => 'INT=',
+    class => 'STR=',
+    info => 'STR=',
   };
   $self->{class} = $args->{class} || 'Games::3D::Thingy';
   $self;
@@ -68,15 +71,51 @@ sub id
   $self->{id};
   }
 
+sub create_thing
+  {
+  # take your own blueprint and create a thing
+  my $self = shift;
+
+  my $base = $self->{base} || 'Games::3D::Thingy';
+  
+  if (exists $self->{valid}->{base})
+    {
+    $base = $self->{valid}->{base};
+    }
+
+  my $base_pm = $base; $base_pm =~ s/::/\//g; $base_pm .= '.pm';
+  require $base_pm;
+  my $object = $base->new();
+
+  # rebless, from 'Games::3D::Thingy' into 'Games::3D::Thingy::Physical...'
+  $object->{class} = $self->{class};
+
+  # Foo::Bar::Baz inherits from Foo::Bar and Foo, so check all of them
+  # TODO: we might just store the inherited stuff as to not always have
+  #       to check overriden settings
+  my @classes = split /::/, $object->{class};
+
+  while (@classes > 0)
+    {
+    my $class = join('::', @classes);
+    my $tpl = $self->{_world}->find_template($class);
+    $tpl->init_thing($object) if $tpl;
+    pop @classes;
+    }
+  $object;
+  }
+
 sub init_thing
   {
-  # init all fields in a thing from the blueprint
+  # init all fields in a thing from the blueprint and return the thing
   my ($self,$thing) = @_;
 
   foreach my $key (keys %{$self->{valid}})
     {
-    next if exists $thing->{key};
+    next if exists $thing->{$key};
     my ($type,$default) = split /=/, $self->{valid}->{$key};
+    ($type,$default) = ('STR', $type) unless defined $default;
+
     if ($type eq 'ARRAY')
       {
       $thing->{$key} = [ split /,/, $default ];
@@ -85,11 +124,25 @@ sub init_thing
       {
       $thing->{$key} = $default =~ /^(false|off|no)$/i ? undef : 1;
       }
+    elsif ($type eq 'CODE')
+      {
+      $thing->{$key} = $default;
+      }
+    elsif ($type eq 'SIG')
+      {
+      $thing->{$key} = signal_by_name($default);
+      }
+    elsif ($type eq 'FRACT')
+      {
+      $thing->{$key} = abs($default);
+      $thing->{$key} = 1 if $thing->{$key} > 1;
+      }
     else
       {
       $thing->{$key} = $default;
       }
     }
+  $thing;
   }
 
 sub validate
@@ -145,14 +198,18 @@ sub from_string
     my $class = $1;
     return "Undefined class in line $linenr" if ($class || '') eq '';
 
-    my $self = bless { }, $class;			# emulate ->new();
+    my $self = __PACKAGE__->new();			# emulate ->new();
+    $self->{class} = $class;
+
     $line = shift @lines; $linenr++;
+    my $s = $self->{valid};
+
     while ($line !~ /^\s*\}/)
       {
       if ( $line =~ m/\s*([\w-]+)\s*=>?\s*\{\s*$/)	# "hash => {"	
 	{
 	$name = $1 || return ("Empty hash name in line $linenr\n");
-	$self->{$name} = {};
+	$s->{$name} = {};
         $line = shift @lines; $linenr++;
     	while ($line !~ /^\s*\}/)
 	  {
@@ -161,9 +218,9 @@ sub from_string
            $line =~
 	    m/\s*([\w-]+)\s*=>?\s*(['\"])?(.*?)\2?\s*$/;
 	  my $n = $1 || return ("Empty name in line $linenr\n");
-	  return ("Field '$n' already defined in hash '$name' in '$class' in line $linenr")
-	   if exists $self->{$name}->{$n};
-	  $self->{$name}->{$n} = $3;
+#	  return ("Field '$n' already defined in hash '$name' in '$class' in line $linenr")
+#	   if exists $s->{$name}->{$n};
+	  $s->{$name}->{$n} = $3;
           $line = shift @lines; $linenr++;
 	  }
 	}
@@ -173,13 +230,12 @@ sub from_string
          $line =~
 	  m/\s*([\w-]+)\s*=>?\s*(['\"])?(.*?)\2?\s*$/;	# var => val, var = val
 	$name = $1 || return ("Empty name in line $linenr\n");
-	return ("Field '$name' already defined in '$class' in line $linenr")
-         if exists $self->{$name};
-	$self->{$name} = $3;
+#	return ("Field '$name' already defined in '$class' in line $linenr")
+#         if exists $s->{$name};
+	$s->{$name} = $3;
         $line = shift @lines; $linenr++;
 	}
       }
-    $line = shift @lines; $linenr++;
     # one object done
     push @objects, $self;
     }
@@ -190,18 +246,19 @@ sub as_string
   {
   my $self = shift;
 
-  my $txt = ref($self) . " {\n";
-  foreach my $k (sort keys %$self)
+  my $txt = $self->{class} . " {\n";
+  my $s = $self->{valid};
+  foreach my $k (sort keys %$s)
     {
     next if $k =~ /^_/;					# skip internal keys
-    my $v = $self->{$k};				# get key
+    my $v = $s->{$k};					# get key
     next if !defined $v;				# skip empty
     if (ref($v) eq 'HASH')
       {
       $v = "{\n";
-      foreach my $key (sort keys %{$self->{$k}})
+      foreach my $key (sort keys %{$s->{$k}})
 	{
-        my $vi = $self->{$k}->{$key};
+        my $vi = $s->{$k}->{$key};
         $vi = $vi->as_string() if ref($v);
         $v .= "    $key = $vi\n";
 	}
@@ -209,7 +266,7 @@ sub as_string
       }
     else
       {
-      $v = '"'.$v.'"' if $v =~ /[^a-z0-9_\.,'"+-]/;
+      $v = '"'.$v.'"' if $v =~ /[^a-zA-Z0-9_\.,'"+-=]/;
       next if $v eq '';
       }
     $txt .= "  $k = $v\n";
@@ -306,6 +363,12 @@ Returns undef for ok, otherwise error message.
 =item id()
 
 Return the templates' unique id. They are independant from all other IDs.
+
+=item create_thing()
+
+	my $fresh = $template->create_thing();
+
+Take your own blueprint and create a thing with default values.
 
 =back
 

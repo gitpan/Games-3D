@@ -16,6 +16,8 @@ use vars qw/@ISA @EXPORT_OK $VERSION/;
   SIG_FLIP SIG_DIE
   SIG_ACTIVATE SIG_DEACTIVATE
 
+  SIG_KILLED SIG_UNKNOWN
+
   SIG_LEFT SIG_RIGHT
   STATE_FLIP
   STATE_ON STATE_UP STATE_OPEN
@@ -112,7 +114,8 @@ sub SIG_NOW_13 () { 213; }
 sub SIG_NOW_14 () { 214; }
 sub SIG_NOW_15 () { 215; }
 
-sub SIG_DIE { 1000; }
+sub SIG_DIE () { 1000; }
+sub SIG_KILLED () { 1001; }
 
 sub STATE_ON () { 1; }
 sub STATE_OPEN () { 1; }
@@ -123,19 +126,24 @@ sub STATE_CLOSED () { 0; }
 sub STATE_DOWN () { 0; }
 sub STATE_LEFT () { 0; }
 
+sub SIG_UNKNOWN () { 99999; }
+
 sub STATE_FLIP () { -1; }
 
 sub SIG_LEVEL_WON () { 10; }
 sub SIG_LEVEL_LOST () { -10; }
 
-use vars qw/$sig_names/;
+use vars qw/$sig_names $sig_codes/;
 
-my $sig_names =
+BEGIN
+  {
+  $sig_names =
   {
   SIG_LEVEL_WON() => 'SIG_LEVEL_WON',
   SIG_LEVEL_LOST() => 'SIG_LEVEL_LOST',
   SIG_FLIP() => 'SIG_FLIP',
   SIG_DIE() => 'SIG_DIE',
+  SIG_KILLED() => 'SIG_KILLED',
   SIG_ACTIVATE() => 'SIG_ACTIVATE',
   SIG_DEACTIVATE() => 'SIG_DEACTIVATE',
   SIG_ON() => 'SIG_ON',
@@ -174,6 +182,14 @@ my $sig_names =
   SIG_NOW_15() => 'SIG_NOW_15',
   };
 
+  $sig_codes = {};
+  # reverse map
+  foreach my $key (keys %$sig_names)
+    {
+    $sig_codes->{ $sig_names->{$key} } = $key;
+    }
+  }
+
 ##############################################################################
 # methods
 
@@ -200,6 +216,13 @@ sub signal_name
   my $s = $sig_names->{$sig} || 'SIG_UNKNOWN';
 
   $s ."($sig)";
+  }
+
+sub signal_by_name
+  {
+  my $sig = shift;
+
+  $sig_codes->{$sig} || SIG_UNKNOWN;
   }
 
 sub state_from_signal
@@ -247,19 +270,28 @@ Exports nothing on default. Can export signal and state names like:
 
   SIG_ON SIG_UP SIG_OPEN
   SIG_OFF SIG_CLOSE SIG_DOWN
-  SIG_FLIP SIG_DIE SIG_KILL
+  SIG_FLIP SIG_DIE
   SIG_ACTIVATE SIG_DEACTIVATE
 
   SIG_LEFT SIG_RIGHT
   STATE_ON STATE_UP STATE_OPEN
   STATE_OFF STATE_CLOSED STATE_DOWN
 
+  SIG_KILLED 
   SIG_LEVEL_WON
   SIG_LEVEL_LOST
   invert
 
   STATE_0 STATE_1 STATE_2 STATE_3 STATE_4 STATE_5 STATE_6 STATE_7 STATE_8
   STATE_9 STATE_10 STATE_11 STATE_12 STATE_13 STATE_14 STATE_15
+  
+  SIG_STATE_0 SIG_STATE_1 SIG_STATE_2 SIG_STATE_3 SIG_STATE_4 SIG_STATE_5
+  SIG_STATE_6 SIG_STATE_7 SIG_STATE_8 SIG_STATE_9 SIG_STATE_10 SIG_STATE_11
+  SIG_STATE_12 SIG_STATE_13 SIG_STATE_14 SIG_STATE_15
+  
+  SIG_NOW_0 SIG_NOW_1 SIG_NOW_2 SIG_NOW_3 SIG_NOW_4 SIG_NOW_5
+  SIG_NOW_6 SIG_NOW_7 SIG_NOW_8 SIG_NOW_9 SIG_NOW_10 SIG_NOW_11
+  SIG_NOW_12 SIG_NOW_13 SIG_NOW_14 SIG_NOW_15
 
 =head1 DESCRIPTION
 
