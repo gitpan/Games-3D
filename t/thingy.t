@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-use Test::More tests => 17;
+use Test::More tests => 20;
 use strict;
 
 BEGIN
@@ -19,7 +19,7 @@ can_ok ('Games::3D::Thingy', qw/
   outputs inputs
   /);
 
-use Games::3D::Signal qw/SIGNAL_ON SIGNAL_OFF STATE_OFF STATE_ON STATE_FLIP/;
+use Games::3D::Signal qw/SIG_ON SIG_OFF STATE_OFF STATE_ON STATE_FLIP/;
 
 # create thingy
 my $thingy = Games::3D::Thingy->new ( );
@@ -39,10 +39,23 @@ is ($thingy->activate(), 1, 'is stil active');
 is ($thingy->name(), 'Thingy #1', "knows it's name");
 
 is ($thingy->state(), STATE_OFF, "is off");
-is ($thingy->state(STATE_ON), STATE_ON, "is now on");
-is ($thingy->state(STATE_FLIP), STATE_OFF, "is now off again");
-is ($thingy->state(STATE_OFF), STATE_OFF, "is still off");
 
-$thingy->signal(1,SIGNAL_OFF); is ($thingy->state(), STATE_OFF, "is still off");
-$thingy->signal(1,SIGNAL_ON); is ($thingy->state(), STATE_ON, "is on again");
+$thingy->state(STATE_ON); 
+is ($thingy->state(), STATE_OFF, "is still off (no update yet)");
+is ($thingy->{state_target}, STATE_ON, "target state is ON");
+is ($thingy->{state_endtime}, 1, "endtime is now (1)");
+
+$thingy->update(1);
+is ($thingy->state(), STATE_ON, "is now on");
+
+$thingy->state(STATE_FLIP); $thingy->update(1);
+is ($thingy->state(), STATE_OFF, "is now off again");
+
+$thingy->state(STATE_OFF);
+is ($thingy->state(), STATE_OFF, "is still off");
+
+$thingy->signal(1,SIG_OFF); is ($thingy->state(), STATE_OFF, "is still off");
+$thingy->signal(1,SIG_ON);
+$thingy->update(2);
+is ($thingy->state(), STATE_ON, "is on again");
 

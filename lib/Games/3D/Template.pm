@@ -48,6 +48,8 @@ sub new
     next_think => 'INT=0',
     inputs => 'ARRAY=0',
     outputs => 'ARRAY=0',
+    state_endtime => 'INT=',
+    state_target => 'INT=',
   };
   $self->{class} = $args->{class} || 'Games::3D::Thingy';
   $self;

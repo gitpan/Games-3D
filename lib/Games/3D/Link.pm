@@ -9,14 +9,17 @@ use strict;
 
 require Exporter;
 use Games::3D::Signal qw/
-  SIGNAL_FLIP SIGNAL_OFF SIGNAL_DIE SIGNAL_KILL
-  SIGNAL_ACTIVATE SIGNAL_DEACTIVATE
+  SIG_FLIP SIG_OFF SIG_DIE
+  SIG_ACTIVATE SIG_DEACTIVATE
+  signal_name
   /;
 use Games::3D::Thingy;
 use vars qw/@ISA $VERSION/;
 @ISA = qw/Exporter Games::3D::Thingy/;
 
-$VERSION = '0.02';
+$VERSION = '0.03';
+
+sub DEBUG () { 1; }
 
 ##############################################################################
 # protected class vars
@@ -37,6 +40,8 @@ $VERSION = '0.02';
 sub _init
   {
   my $self = shift;
+
+  $self->SUPER::_init(@_);
 
   $self->{input_states} = {};  			# for AND gates
   $self->{inputs} = {};  
@@ -65,19 +70,19 @@ sub signal
   die ("Unregistered input $input tried to send signal to link $self->{id}")
    if !exists $self->{inputs}->{$input};
 
-  # if the signal is DIE or KILL, DESTROY yourself
-  if ($sig == SIGNAL_DIE || $sig == SIGNAL_KILL)
+  # if the signal is DIE, DESTROY yourself
+  if ($sig == SIG_DIE)
     {
     $self->DESTROY();
     return;
     }
   # if the signal is ACTIVATE or DEACTIVATE, (in)activate yourself
-  if ($sig == SIGNAL_ACTIVATE)
+  if ($sig == SIG_ACTIVATE)
     {
     $self->activate();
     return;				# don't relay this signal
     }
-  elsif ($sig == SIGNAL_DEACTIVATE)
+  elsif ($sig == SIG_DEACTIVATE)
     {
     $self->deactivate();
     return;				# don't relay this signal
@@ -106,7 +111,7 @@ sub signal
   # otherwise we might need to invert the signal to be sent
   elsif ($self->{invert})
     {
-    $sig = -$sig;				# invert()
+    $sig = Games::3D::Signal::invert($sig);			# invert()
     }
   
   # need to delay sending, or send more than one time
@@ -122,6 +127,8 @@ sub signal
     }
   else
     {
+    print '# ',$self->name()," relays ",signal_name($sig),
+     " from $input to outputs.\n" if DEBUG;
     # Send signal straight away. 
     $self->output($input,$sig);		# send $sig to all outputs
     }
@@ -135,7 +142,7 @@ sub link
   $self->{inputs}->{$src->{id}} = $src;
   if ($self->{and} && scalar keys %{$self->{inputs}} > 1)
     {
-    $self->{input_states}->{$src->{id}} = SIGNAL_OFF;
+    $self->{input_states}->{$src->{id}} = SIG_OFF;
     }
   $self->{outputs}->{$dst->{id}} = $dst;
   $src->add_output($self);			# the link appears as output
@@ -161,7 +168,7 @@ sub add_input
   $self->{inputs}->{$src->{id}} = $src;
   if ($self->{and} && scalar keys %{$self->{inputs}} > 1)
     {
-    $self->{input_states}->{$src->{id}} = SIGNAL_OFF;
+    $self->{input_states}->{$src->{id}} = SIG_OFF;
     }
   $self;
   }
@@ -423,7 +430,7 @@ Returns the once flag.
 
 	if (defined $link->fixed_output()) { ... }
 	$link->fixed_output(undef);			# disable
-	$link->fixed_output(SIGNAL_ON);			# always send ON
+	$link->fixed_output(SIG_ON);			# always send ON
 
 Get/set the fixed output signal. If set to undef (default), then the input
 signal will be relayed through (unless L<invert()> was set, which would

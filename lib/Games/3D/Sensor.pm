@@ -9,8 +9,8 @@ use strict;
 
 use Exporter;
 use Games::3D::Signal qw/
-  SIGNAL_FLIP SIGNAL_OFF SIGNAL_DIE SIGNAL_KILL
-  SIGNAL_ACTIVATE SIGNAL_DEACTIVATE
+  SIG_FLIP SIG_OFF SIG_DIE
+  SIG_ACTIVATE SIG_DEACTIVATE
   /;
 use Games::3D::Link;
 use vars qw/@ISA @EXPORT_OK $VERSION/;
@@ -93,19 +93,19 @@ sub signal
   die ("Unregistered input $input tried to send signal to link $self->{id}")
    if !exists $self->{inputs}->{$input};
 
-  # if the signal is DIE or KILL, DESTROY yourself
-  if ($sig == SIGNAL_DIE || $sig == SIGNAL_KILL)
+  # if the signal is DIE, DESTROY yourself
+  if ($sig == SIG_DIE)
     {
     $self->DESTROY();
     return;
     }
   # if the signal is ACTIVATE or DEACTIVATE, (in)activate yourself
-  if ($sig == SIGNAL_ACTIVATE)
+  if ($sig == SIG_ACTIVATE)
     {
     $self->activate();
     return;				# don't relay this signal
     }
-  elsif ($sig == SIGNAL_DEACTIVATE)
+  elsif ($sig == SIG_DEACTIVATE)
     {
     $self->deactivate();
     return;				# don't relay this signal
@@ -177,9 +177,9 @@ Games::3D::Sensor - monitor conditions and trigger when they are met
 	my $src = Games::3D::Thingy->new();
 	my $dst = Games::3D::Thingy->new();
 
-	# Send a signal SIGNAL_ON (only once)
+	# Send a signal SIG_ON (only once)
 	# if the health drops below 15
-	# Send a SIGNAL_OFF (only once) if it goes outside that
+	# Send a SIG_OFF (only once) if it goes outside that
 	# range (e.g. >= 15).
 	my $sensor = Games::3D::Sensor->new(
 		obj => $src, what => 'health',
@@ -192,7 +192,7 @@ Games::3D::Sensor - monitor conditions and trigger when they are met
 	my $link = Games::3D::Link->new();
 	$link->link ($sensor, $dst);
 
-	# Send a signal SIGNAL_ON (every 100 ms) if health is between
+	# Send a signal SIG_ON (every 100 ms) if health is between
 	# 15 and 45. Don't send any signal if outside that range
 	my $sensor_2 = Games::3D::Sensor->new(
 		obj => $src, what => 'health',
@@ -208,7 +208,7 @@ Games::3D::Sensor - monitor conditions and trigger when they are met
 	# intermidiate link object:
 	$sensor_2->add_output($dst);
 
-	# Send SIGNAL_FLIP everytime the condition changes
+	# Send SIG_FLIP everytime the condition changes
 	# This could be used to change the color of the health
 	# bar from green to red everytime the health goes below
 	# 10, and back to red if it goes over 10.
@@ -216,9 +216,9 @@ Games::3D::Sensor - monitor conditions and trigger when they are met
 		obj => $src, what => 'health',
 		type => SENSOR_BELOW,
 		A => 10,
-		fixed_output => SIGNAL_FLIP,
+		fixed_output => SIG_FLIP,
 	);
-	# Send SIGNAL_ON three times as long as the condition is not met
+	# Send SIG_ON three times as long as the condition is not met
 	my $sensor_4 = Games::3D::Sensor->new(
 		obj => $src, what => 'health',
 		type => SENSOR_RANGE,
@@ -227,7 +227,7 @@ Games::3D::Sensor - monitor conditions and trigger when they are met
 		repeat => 250,
 		count => 3,		# 3 times
 		when => COND_NOT_MET,
-		fixed_output => SIGNAL_ON,
+		fixed_output => SIG_ON,
 	);
 
 =head1 EXPORTS
@@ -363,13 +363,13 @@ Returns the once flag.
 
 	if (defined $sensor->fixed_output()) { ... }
 	$sensor->fixed_output(undef);			# disable
-	$sensor->fixed_output(SIGNAL_FLIP);		# always send FLIP
+	$sensor->fixed_output(SIG_FLIP);		# always send FLIP
 
 Get/set the fixed output signal. If set to undef (default), then the two
-signals SIGNAL_ON and SIGNAL_OFF will be generated when the condition is
+signals SIG_ON and SIG_OFF will be generated when the condition is
 met (or not, respectively). 
 
-Setting C<< $sensor->fixed_output(SIGNAL_FLIP); >> would allow you to
+Setting C<< $sensor->fixed_output(SIG_FLIP); >> would allow you to
 build a sensor that always sends a flip signal as the condition changes
 from met to unmet and back.
 

@@ -56,6 +56,17 @@ Games:3D:
   * World.pm: update(), render(), register(), unregister(), thinkers()
   * Thingy.pm: as_string()
 
+2004-03-20 v0.08 Tels - 111 tests
+  * SIGNAL_xxx to SIG_xxx
+  * removed SIG_KILL
+  * added 15 states (STATE_0..STATE_15) and signals so that you can send these
+    to objects to change their state
+  * added 15 signales (SIG_NOW_0) so objects can announce when they finished
+    changing their state
+  * SIG_ON and SIG_OFF (and their aliases) switch between STATE_0 and STATE_1
+  * World: cache time upon update, added method time()
+  * added an update() routine to Thingy so that state transitions can happen
+
 Please send me test-reports, your experiences with this and your ideas - I love
 to hear about my work!
 

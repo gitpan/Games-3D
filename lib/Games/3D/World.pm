@@ -43,6 +43,8 @@ sub new
     $self->load_from_file($_[1]);
     }
 
+  $self->{time} = 0;
+
   $self;
   }
 
@@ -140,6 +142,7 @@ sub update
   {
   my ($self,$now) = @_;
 
+  $self->{time} = $now;				# cache time
   foreach my $id (keys %{$self->{think}})
     {
     my $thing = $self->{think}->{$id};
@@ -147,9 +150,19 @@ sub update
       {
       $thing->think($now);
       }
-    # does not handle things that no longer want to think()
+    # if the thing is in transition between states, let it update itself
+    $thing->update($now) if $thing->{state_endtime} != 0;
+
+    # XXX TODO: does not handle things that no longer want to think()
     }
   $self;
+  }
+
+sub time
+  {
+  my $self = shift;
+
+  $self->{time};
   }
 
 sub render

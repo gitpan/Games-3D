@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-use Test::More tests => 45;
+use Test::More tests => 49;
 use strict;
 
 BEGIN
@@ -22,8 +22,8 @@ can_ok ('Games::3D::Link', qw/
   /);
     
 use Games::3D::Signal qw/
-  SIGNAL_ON SIGNAL_OFF STATE_OFF STATE_ON SIGNAL_ACTIVATE SIGNAL_DEACTIVATE
-  SIGNAL_FLIP
+  SIG_ON SIG_OFF STATE_OFF STATE_ON SIG_ACTIVATE SIG_DEACTIVATE
+  SIG_FLIP
  /;
 
 # create link
@@ -72,17 +72,33 @@ is (ref($link->{outputs}->{3}), 'Games::3D::Thingy', 'listener on link ok');
 is ($t2->state(), STATE_OFF, 't2 is off');
 
 # sending as object
-$t1->output($t1,SIGNAL_ON);
+$t1->output($t1,SIG_ON);
+$t2->update(1);
 is ($t2->state(), STATE_ON, 't2 is now on');
 
 # sending as id
-$t1->output($t1,SIGNAL_OFF);
+$t1->output($t1,SIG_OFF);
+$t2->update(2);
 is ($t2->state(), STATE_OFF, 't2 is now off');
 
 # state change on t1 causes signal to be sent to t2
 $t1->state(STATE_ON);
-is ($t2->state(), STATE_ON, 't2 is now on again after state change');
+$t1->update(3);
+is ($t1->state(), STATE_ON, 't1 is on after state change');
+is ($t2->state(), STATE_OFF, 
+  't2 is off, since t1 relayed STATE_ON (not SIG_ON!)');
 
+# set to off
+$t1->state(STATE_OFF); $t1->update(3);
+is ($t1->state(), STATE_OFF, 't1 is off after state change');
+
+# send signal that gets relayed
+$t1->signal($t1,SIG_ON);
+$t1->update(3);
+is ($t1->state(), STATE_ON, 't1 is on after state change');
+$t2->update(3);
+is ($t2->state(), STATE_ON, 
+  't2 is on, since t1 relayed SIG_ON!');
 
 ##############################################################################
 # create three thingies and link them together with an AND gate
@@ -122,12 +138,12 @@ $t3->state(STATE_OFF);
 
 # inactivate link
 
-$t1->output($t1,SIGNAL_DEACTIVATE);
+$t1->output($t1,SIG_DEACTIVATE);
 is ($link->is_active(), 0, 'inactive now');
 is ($t3->is_active(), 1, "didn't get releayed");
 is ($t3->state(), STATE_OFF, 't3 off (signal not relayed)');
 
-$t1->signal($t1,SIGNAL_FLIP);
+$t1->signal($t1,SIG_FLIP);
 is ($t3->state(), STATE_OFF, 't3 is still off (link inactive)');
 
 

@@ -12,12 +12,16 @@ use vars qw/@ISA $VERSION $AUTOLOAD/;
 @ISA = qw/Exporter/;
 
 use Games::3D::Signal qw/
-  STATE_OFF STATE_ON
-  SIGNAL_FLIP SIGNAL_ACTIVATE SIGNAL_DEACTIVATE
-  SIGNAL_KILL SIGNAL_DIE
+  STATE_OFF STATE_FLIP STATE_ON STATE_0
+  SIG_FLIP SIG_ACTIVATE SIG_DEACTIVATE
+  SIG_DIE SIG_NOW_0
+  state_from_signal
+  signal_from_state signal_name
   /;
 
-$VERSION = '0.03';
+sub DEBUG () { 1; }
+
+$VERSION = '0.04';
 
 ##############################################################################
 # protected vars
@@ -46,7 +50,6 @@ sub new
 
   $self->{active} = 1;
   $self->{_world} = undef;		# not contained in anything yet
-#  $self->{contains} = { };		# nothing
   
   $self->{outputs} = {};
   $self->{inputs} = {};
@@ -56,8 +59,32 @@ sub new
   $self->{name} = ucfirst($self->{name});
   $self->{name} .= ' #' . $self->{id};
   
-  $self->{states} = [ STATE_OFF, STATE_ON ];	# OFF, ON
-  $self->{state} = 0;
+  $self->{state} = 0;				# current state
+
+  # time when state change has to end. endtime is starttime + time_for_change,
+  # as defined in field 0 of 'states' below:
+  $self->{state_endtime} = 0;			# disable change
+  $self->{state_target} = 0;			# target state (from current)
+
+  # example:
+  $self->{states} = [
+    [
+    1,						# ms to change to this state
+# example:
+#    'light_r' => 0,	  			# light off
+#    'light_g' => 0,	  			# light off
+#    'light_b' => 0,	  			# light off
+#    'light_a' => 0,	  			# light off
+    ],
+    [
+    1,
+# example:
+#    'light_r' => 1.0,	  			# light on
+#    'light_g' => 1.0,	  			# light on
+#    'light_b' => 0,	  			# light on
+#    'light_a' => 1.0,	  			# light on
+    ],
+   ];
   
   $self->{visible} = 0;			# invisible
   $self->{think_time} = 0;		# never think
@@ -305,32 +332,43 @@ sub state
   if (defined $_[0] && $self->{active} == 1)
     {
     my $old_state = $self->{state};
-    if ($_[0] == SIGNAL_FLIP)
+
+    # initiate state change:
+    my $newstate;
+ 
+    if ($_[0] == STATE_FLIP)
       {
-      if ($self->{state} <= 1)
+      if ($self->{state} <= STATE_ON)
 	{
-        $self->{state} = 1 - $self->{state};	# invert()
+        $newstate = STATE_ON - $self->{state};
         }
       else
         {
-        # XXX TODO: thingy with more than 2 states, flip undefined
-        $self->{state} = 0;
+        # XXX TODO: on thingy with more than 2 states, flip is undefined
+        $newstate = STATE_0;
         }
       }
     else
       {
-      my $s = shift; my $i = 0;
-      for my $st (@{$self->{states}})
-	{
-        $self->{state} = $i or last if $st == $s;
-        $i++;
-	}
+      $newstate = $_[0];
       }
-    # notify our listeners of all changes
-    $self->output($self->{id},$self->{states}->[$self->{state}])
-     if $self->{state} != $old_state;
+
+    if ($self->{state} != $newstate)
+      {
+      print '# ', $self->name(), 
+	" changes state from $self->{state} to $newstate\n" if DEBUG;
+
+      # set the endtime for when the state change should be complete
+      my $now = 0;
+      $now = $self->{_world}->time() if $self->{_world}; 
+      $self->{state_endtime} = $now +
+       ($self->{states}->[ $newstate ]->[0] || 1);	# avoid state changes
+							# that take no time
+      $self->{state_target} = $newstate;
+      # notifing our listeners will be done when the state change is complete
+      }
     } 
-  $self->{states}->[$self->{state}];
+  $self->{state};
   }
 
 sub signal
@@ -342,27 +380,31 @@ sub signal
   # something.
   my ($self,$input,$sig) = @_;
 
-#  my $id = $input; $id = $input->{id} if ref($id);
-#  print "# ",$self->name()," received signal $sig from $id\n";
+  my $id = $input; $id = $input->{id} if ref($id);
+  print "# ",$self->name()," received signal ",signal_name($sig),
+   " from $id\n" if DEBUG;
 
   # if asked to die, do so now
-  if ($sig == SIGNAL_DIE || $sig == SIGNAL_KILL)
+  if ($sig == SIG_DIE)
     { 
     $self->DESTROY();
     return;
     }
   # if asked to deactivate, do so now
-  if ($sig == SIGNAL_ACTIVATE)
+  if ($sig == SIG_ACTIVATE)
     { 
     $self->{active} = 1;
     return;
     }
-  if ($sig == SIGNAL_DEACTIVATE)
+  if ($sig == SIG_DEACTIVATE)
     { 
     $self->{active} = 0;
     return;
     }
-  $self->state($sig);
+  # set ourself to the new state, unless SIG_NOW_x (these are ignored)
+  $self->state(state_from_signal($sig)) if $sig <= SIG_NOW_0;
+  # relay incoming signals to outputs if neccessary
+  $self->output($input,$sig);
   }
 
 sub inputs
@@ -453,6 +495,66 @@ sub link
   $link;
   }
 
+sub update
+  {
+  # if thing is going from state A to state B, interpolate values based upon
+  # current time tick. If reached state B, disable interpolation, and send a 
+  # signal. Return 1 if while still in transit, 0 if target state reached
+
+  my ($self, $tick) = @_;
+
+  # if the thingy is in between two state changes, interpolate between them
+  return if $self->{state_endtime} == 0;	# no change neccessary
+  
+  # for all fields in the target state, interpolate them
+  my @states = @{$self->{states}->[$self->{state_target}]};
+
+  if ($tick >= $self->{state_endtime})		# overdue
+    {
+    # simple set the fields, and disable the state change
+    print "# update($tick) caused change ",$self->name(),
+     " $self->{state} => $self->{state_target}\n" if DEBUG;
+
+    $self->{state_endtime} = 0;			# no further change
+    $self->{state} = $self->{state_target};	# reached target state
+    # send signal that state change is complete
+    print "# Sending signal ", signal_name(signal_from_state($self->{state})),
+     "\n" if DEBUG;
+    $self->output($self, signal_from_state($self->{state}));
+
+    while (@states > 0)
+      {
+      $self->{$states[0]} = $states[1];
+      splice @states,0,2;			# throw away first two entries
+      }
+    return 0;					# no more changes
+    }
+  
+  my $time = shift @states;			# field 0 is the time it takes
+ 
+  # get the values from the current state 
+  my @cur_states = @{$self->{states}->[$self->{state}]};
+  shift @cur_states;				# dont need field 0
+
+  # factor: endtime - time = starttime		# 200 - 100 = 100
+  #         tick - starttime = elapsedtime	# 180 - 100 = 80
+  #         time / elapsedtime = factor		# 100 / 80 = 0.8 (80%)
+
+  my $factor = $time / ($tick - ($self->{state_endtime} - $time));
+
+  # interpolate linaer to the target values  
+  while (@states > 0)
+    {
+    # 20 .. 80 => 60 * 0.8 (factor, 80%) = 48 + 20 => 68 as current value
+    $self->{$states[0]} =
+     ($states[1] - $cur_states[1]) * $factor + $cur_states[1];
+
+    splice @states,0,2;				# throw away first two entries
+    splice @cur_states,0,2;			# throw away first two entries
+    }
+  1;						# more changes to do
+  }
+
 1;
 
 __END__
@@ -483,15 +585,7 @@ Games::3D::Thingy - base class for virtual and physical 3D objects
 
 =head1 EXPORTS
 
-Exports nothing on default. Can export signal and state names like:
-
-	SIGNAL_ON SIGNAL_UP SIGNAL_OPEN
-	SIGNAL_OFF SIGNAL_CLOSE SIGNAL_DOWN
-	SIGNAL_FLIP
-
-	STATE_ON STATE_UP STATE_OPEN
-	STATE_OFF STATE_CLOSED STATE_DOWN
-	STATE_FLIP
+Exports nothing on default.
 
 =head1 DESCRIPTION
 

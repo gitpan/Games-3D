@@ -9,7 +9,7 @@ use strict;
 
 use vars qw/$VERSION/;
 
-$VERSION = '0.07';
+$VERSION = '0.08';
 
 1;
 
@@ -73,7 +73,7 @@ sensor. Sensors are primarily used to watch for certain conditions and
 then act when they are met. Examples are the death of an object, values
 that go below a certain threshold etc.
 
-State changes are transported in the object system with signals.
+State changes are transported in the object system with B<signals>.
 
 A detailed explanation of all these basic building blocks follows below.
 
@@ -101,6 +101,30 @@ act upon, but not pass along. See below).
 From now on C<Thingy>s will be simple called C<object> because even
 C<Link>s and C<Sensor>s are C<Thingy>s underneath.
 
+=head2 States and State changes
+
+Each object is in a certain state. Currently 16 different states exist,
+although most objects will only have two states. Switching between states
+is achived by sending the object a signal with the desired target state.
+
+The signals SIG_ON and SIG_OFF switch to state 1 and state 0, respectively.
+SIG_FLIP flips between these two states.
+
+Each state has a state-change-time associated with itself. The object will
+take so long to switch from the current state to the next state. There are
+also variables that will change from value A to value B while the state
+change takes place.
+
+This means you can have a light come on (over a certain short period of time)
+and off again.
+
+When the target state is reached, the object will send of a (different than
+the one it received to switch it's state) signal to all linked objects.
+
+Thus it is possible to distinguish between start and end of the state change.
+This is important if you want certain things to happen immidiately, or after
+the state change is complete.
+
 =head2 Signals
 
 While you can create arbitrary signals and have your object act
@@ -110,58 +134,61 @@ Signals that are not relayed:
 
 =over 2
 
-=item SIGNAL_DIE, SIGNAL_KILL
+=item SIG_DIE, SIG_KILL
 
 This causes the object that receives the signal to be destroyed.
-It will send out a SIGNAL_DESTROYED to all linked objects.
+It will send out a SIG_DESTROYED to all linked objects.
 
-=item SIGNAL_ACTIVATE, SIGNAL_DEACTIVATE
+=item SIG_ACTIVATE, SIG_DEACTIVATE
 
 This causes the object that receives the signal to be (de)activated.
 Once deactivated, an object will stop receiving and sending signals
-until it get's SIGNAL_ACTIVATE again.
+until it get's SIG_ACTIVATE again.
 
-Upon receiving such a signal, will send out a SIGNAL_ACTIVATED 
-respectively a SIGNAL_DEACTIVATED to all linked objects.
+Upon receiving such a signal, will send out a SIG_ACTIVATED 
+respectively a SIG_DEACTIVATED to all linked objects.
 
 =back
 
 Signals that are relayed:
 
-=item SIGNAL_ON, SIGNAL_OFF
+=item SIG_ON, SIG_OFF
 
 These signals will change two-state objects between the ON and OFF state, and
 will be relayed to other objects I<as they are> and I<immidiately>.
  
-=item SIGNAL_NOW_ON, SIGNAL_NOW_OFF
+=item SIG_NOW_ON, SIG_NOW_OFF
 
 When an object receives ON or OFF, it will turn itself ON, or OFF,
 respectively, and once it finished, it will send NOW_ON or NOW_OFF,
 respectively.
 
-=item SIGNAL_FLIP
+=item SIG_FLIP
 
 The same as ON or OFF, but instead flips the state between ON and OFF.
 
+=item SIG_STATE_0, SIG_STATE_1, etc
+
+This signal cause the object to go to the desired state (over a certain
+time period).
+
 =back
 
-When you invert a SIGNAL_ON, it becomes SIGNAL_OFF, and vice versa.
-SIGNAL_FLIP cannot be inverted.
-
-(SIGNAL_DIE inverted is SIGNAL_KILL, and vice versa. Since both are treated
-the same, inversion on them does not matter.)
+When you invert a C<SIG_ON>, it becomes C<SIG_OFF>, and vice versa.
+C<SIG_FLIP> and C<SIG_DIE>, C<SIG_NOW_0> up to C<SIG_NOW_15> as well as
+C<SIG_STATE_2> up to C<SIG_STATE_15> cannot be inverted. 
 
 Various other signals:
 
 =over 2
 
-=item SIGNAL_CHANGED
+=item SIG_CHANGED
 
 This signal is send out when a certain value changes. It is only send out to
 objects that requested to be notified of state changes (e.g. typically
 C<Sensor>s). It carries the type (what was changed) and the new value.
 
-=item SIGNAL_SET, SIGNAL_ADD, SIGNAL_MUL
+=item SIG_SET, SIG_ADD, SIG_MUL
 
 This is used to signal an object that it should change a setting of itself.
 SET is used to set the value directly, ADD brings in a (possible negative)
@@ -183,7 +210,7 @@ A link can delay any signal coming across by a fixed (or randomized) time.
 
 =item Invert
 
-Links can invert signals. Thus SIGNAL_ON becomes SIGNAL_OFF, and vice versa.
+Links can invert signals. Thus SIG_ON becomes SIG_OFF, and vice versa.
 
 =item Repeat
 
@@ -197,7 +224,7 @@ send out always the same signal, regardless of input signal.
 
 =back
 
-A further advantage of link objects is that you can send a SIGNAL_DIE to the
+A further advantage of link objects is that you can send a SIG_DIE to the
 link object itself, and thus destroying it. This breaks the link between the
 two objects in a finite manner. You can also deactivate and later activate the
 link again, without effecting the objects linked together itself.

@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-use Test::More tests => 8;
+use Test::More tests => 9;
 use strict;
 
 BEGIN
@@ -17,6 +17,7 @@ can_ok ('Games::3D::World', qw/
   ID reset_ID
   update render register unregister
   things thinkers
+  time
   /);
 
 # create world
@@ -32,4 +33,5 @@ my $rendered = 0;
 is ($world->render(0, sub { $rendered++ }), $world, 'rendered');
 
 is ($rendered, 0, 'none so far');
+is ($world->time(), 0, 'world time is 0');
 

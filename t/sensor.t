@@ -23,8 +23,8 @@ can_ok ('Games::3D::Sensor', qw/
   /);
     
 use Games::3D::Signal qw/
-  SIGNAL_ON SIGNAL_OFF STATE_OFF STATE_ON SIGNAL_ACTIVATE SIGNAL_DEACTIVATE
-  SIGNAL_FLIP
+  SIG_ON SIG_OFF STATE_OFF STATE_ON SIG_ACTIVATE SIG_DEACTIVATE
+  SIG_FLIP
  /;
 
 use Games::3D::Sensor qw/
@@ -39,9 +39,9 @@ my $src = Games::3D::Thingy->new();
 
 $src->health(89);
 
-# Send a signal SIGNAL_ON (only once)
+# Send a signal SIG_ON (only once)
 # if the health drops below 15
-# Send a SIGNAL_OFF (only once) if it goes outside that
+# Send a SIG_OFF (only once) if it goes outside that
 # range (e.g. >= 15).
 my $sensor = Games::3D::Sensor->new(
   obj => $src, what => 'health',
@@ -49,7 +49,7 @@ my $sensor = Games::3D::Sensor->new(
   A => 15,
   when => COND_UNCOND,    # default
   );
-# Send a signal SIGNAL_ON (every 100 ms) if health is between
+# Send a signal SIG_ON (every 100 ms) if health is between
 # 15 and 45. Don't send any signal if outside that range
 my $sensor_2 = Games::3D::Sensor->new(
   obj => $src, what => 'health',
@@ -78,7 +78,7 @@ $link->link($sensor_2, $dst);
 
 is (scalar $dst->inputs(), 1, 'dst has one input');
 
-# Send SIGNAL_FLIP everytime the condition changes
+# Send SIG_FLIP everytime the condition changes
 # This could be used to change the color of the health
 # bar from green to red everytime the health goes below
 # 10, and back to red if it goes over 10.
@@ -86,7 +86,7 @@ my $sensor_3 = Games::3D::Sensor->new(
   obj => $src, what => 'health',
   type => SENSOR_BELOW,
   A => 10,
-  fixed_output => SIGNAL_FLIP,
+  fixed_output => SIG_FLIP,
 );
 
 # link this sensor directly to $dst

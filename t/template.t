@@ -32,17 +32,12 @@ is ($tpl->validate( { id => 9 } ),
   "Object class 'HASH' does not match template class 'Games::3D::Thingy'",
   'wrong class');
 
-#open (FILE, __DATA__) or die ("Cannot read __DATA__: $1");
 my @lines;
-while (my $line = <DATA>)
-  {
-  push @lines, $line;
-  }
-#close FILE;
+while (my $line = <DATA>) { push @lines, $line; }
 
 is ($tpl->as_string(), join ('',@lines), 'as string');
 
-my $def_keys = 10;
+my $def_keys = 12;
 is ($tpl->keys(), $def_keys, '5 defaults');
 
 is ($tpl->add_key('foo', 'STRING="abcdef"'), $tpl, 'added key');
@@ -93,6 +88,8 @@ Games::3D::Template {
     next_think = INT=0
     outputs = ARRAY=0
     state = INT=0
+    state_endtime = INT=
+    state_target = INT=
     states = ARRAY=-1,1
     think_time = INT=0
     visible = BOOL=false
