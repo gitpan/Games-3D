@@ -373,11 +373,40 @@ Setting C<< $sensor->fixed_output(SIG_FLIP); >> would allow you to
 build a sensor that always sends a flip signal as the condition changes
 from met to unmet and back.
 
+=item and_gate()
+
+Sensors cannot act as an AND gate, so this routine should not be called.
+
+=item type()
+
+	$sensor->type();
+
+Set/get the type of the sensor.
+
+=item when()
+
+	$sensor->when();
+
+Set/get the when-field of the sensor.
+
+=item watch()
+
+	$sensor->watch( $destination, $what );
+
+Bind an additional target to the sensor.
+
+=item signal()
+
+	$sensor->signal( $input, $signal );
+	$sensor->signal( $link, SIG_ON );
+
+C<$input> sends the signal C<$signal> to this sensor.
+
 =back
 
 =head1 AUTHORS
 
-(c) 2004 Tels <http://bloodgate.com/>
+(c) 2004, 2006 Tels <http://bloodgate.com/>
 
 =head1 SEE ALSO
 

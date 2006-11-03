@@ -6,10 +6,10 @@ package Games::3D;
 # (C) by Tels <http://bloodgate.com/>
 
 use strict;
-
+use 5.8.1;
 use vars qw/$VERSION/;
 
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 1;
 
@@ -436,7 +436,7 @@ the player would just walk to the door and open it :)
 
 The button in the first example has one slight problem: It can be pressed
 again and again, even though without effect. If you want the button to be
-disabled, we can route it's signal to a link, anduse this:
+disabled, we can route its signal to a link, and use this:
 
 
 		   
@@ -447,7 +447,7 @@ disabled, we can route it's signal to a link, anduse this:
 	    |					|
 	    +-----------------------------------+
 
-Pressing the button will open the door and deactivate the button. 
+Pressing the button will open the door and de-activate the button. 
 
 =head2 Two-state button
 
@@ -611,7 +611,7 @@ None known yet.
 
 =head1 AUTHORS
 
-(c) 2003, 2004 Tels <http://bloodgate.com/>
+(c) 2003, 2004, 2006 Tels <http://bloodgate.com/>
 
 =head1 SEE ALSO
 

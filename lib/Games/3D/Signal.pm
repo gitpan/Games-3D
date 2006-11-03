@@ -327,11 +327,17 @@ Return the signal that should be send out when the C<$state> is reached.
 Given a signal like C<SIG_ON>, C<SIG_FLIP> or C<SIG_STATE_x>, will return
 the new state that will result from receiving this signal.
 
+=item signal_by_name()
+
+	my $signal = Games::3D::Signal::signal_by_name('SIG_FLIP');
+
+Converts a signal name to the signal number.
+
 =back
 
 =head1 AUTHORS
 
-(c) 2002, 2003, 2004 Tels <http://bloodgate.com/>
+(c) 2002 - 2004, 2006 Tels <http://bloodgate.com/>
 
 =head1 SEE ALSO
 

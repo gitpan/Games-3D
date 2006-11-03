@@ -278,7 +278,7 @@ remember it's state and is per default in the off state.
 Each link is by default an OR gate e.g. each incoming signal is relayed
 instantly to each output. 
 
-Youc an use C<< $link->and_gate(1) >> to switch the link to the AND gate
+You can use C<< $link->and_gate(1) >> to switch the link to the AND gate
 type.
 
 In this state only when all the inputs are in the the same state, the
@@ -438,11 +438,35 @@ invert the input before sending it out), if set to a specific value, this
 set signal will always be sent, regardless of the input signal or the invert()
 flag.
 
+=item and_gate()
+
+	$link->and_gate(1) unless $link->and_gate();
+
+Set/get the flag indicating this link is an AND gate.
+
+=item invert()
+
+	$link->invert(1) unless $link->invert();
+
+Set/get the flag indicating this link is inverted.
+
+=item unlink()
+
+	$link->unlink();
+
+Unlink all inputs and outputs from the link.
+
+=item add_timer()
+
+	$link->add_timer();
+
+Add a timer to this link. See L<timer_provider>.
+
 =back
 
 =head1 AUTHORS
 
-(c) 2003, 2004 Tels <http://bloodgate.com/>
+(c) 2003, 2004, 2006 Tels <http://bloodgate.com/>
 
 =head1 SEE ALSO
 

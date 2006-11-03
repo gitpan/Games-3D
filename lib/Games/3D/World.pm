@@ -6,13 +6,10 @@ package Games::3D::World;
 # (C) by Tels <http://bloodgate.com/>
 
 use strict;
-
-require Exporter;
-use vars qw/@ISA @EXPORT_OK $VERSION/;
-@ISA = qw/Exporter/;
+use vars qw/$VERSION/;
 use Games::3D::Template;
 
-$VERSION = '0.06';
+$VERSION = '0.07';
 
 ##############################################################################
 # protected vars
@@ -20,7 +17,7 @@ $VERSION = '0.06';
   {
   my $id = 1;
   sub ID { return $id++;}
-  sub reset_ID { $id = 1; }
+  sub _reset_ID { $id = 1; }
   }
 
 ##############################################################################
@@ -37,7 +34,7 @@ sub new
   $self->{render} = { };
   $self->{thinks} = { };
   $self->{templates} = {};
-  reset_ID();
+  _reset_ID();
 
   if (@_ == 2)
     {
@@ -56,7 +53,7 @@ sub load_from_file
 
   $self->{file} = $file; 
   $self->{things} = { };
-  reset_ID();
+  _reset_ID();
 
   $self;
   }
@@ -368,9 +365,47 @@ with the default values.
 
 Given a class name, return the template object for it..
 
+=item id()
+
+	my $id = $world->id();
+
+Return the ID of this world, which is always 0.
+
+=item register()
+
+	$self->register($thingy);
+
+Register an object with the world.
+
+=item unregister()
+
+This method is automatically called to unregister objects with
+the world upon their death.
+
+=item reload()
+
+	$world->reload();
+
+Loads the world from the file again, thus resetting it to its
+initial state again.
+
+=item things()
+
+	my $things = $world->things();
+
+Returns the count of things in this world.
+
+=item thinkers()
+
+	my $thinkers = $world->thinkers();
+
+Get the count of thinking things this world has.
+
+=back
+
 =head1 AUTHORS
 
-(c) 2003, 2004 Tels <http://bloodgate.com/>
+(c) 2003, 2004, 2006 Tels <http://bloodgate.com/>
 
 =head1 SEE ALSO
 

@@ -370,11 +370,41 @@ Return the templates' unique id. They are independant from all other IDs.
 
 Take your own blueprint and create a thing with default values.
 
+=item as_string()
+
+	$template->as_string();
+
+Return this template as string.
+
+=item add_key()
+
+	$template->add_key( );
+
+Add an key to the template.
+
+=item keys()
+
+	my $keys = $template->keys();
+
+Return the number of keys in this template.
+
+=item from_string()
+
+	my @objects = $template->from_string( $string );
+
+Create one or more objets from their string form. See also L<as_string>.
+
+=item init_thing()
+
+	$template->init_thing($thing);
+
+Init all fields in a thing from the blueprint.
+
 =back
 
 =head1 AUTHORS
 
-(c) 2004 Tels <http://bloodgate.com/>
+(c) 2004, 2006 Tels <http://bloodgate.com/>
 
 =head1 SEE ALSO
 

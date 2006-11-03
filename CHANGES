@@ -1,6 +1,14 @@
 
+2006-11-03 v0.10 Tels - 143 tests
+  * require Perl v5.8.1 (anything older is untested and unsupported!)
+  * bundle and use Module::Install
+  * update the distribution
+  * rename reset_ID() to _reset_ID() to mark it as internal
+  * add POD correctness and coverage tests
+  * fix all POD errors and ommisions, fix spellings and some grammer
+
 ############################################################################## 
-Games:3D:
+Older revision history:
 
 2003-03-02 v0.01 Tels - 166 tests (first version)
  * added Game::3D::Point, w/ 3D center

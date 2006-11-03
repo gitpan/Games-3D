@@ -1,4 +1,5 @@
 BUGS
+Build.PL
 CHANGES
 CREDITS
 MANIFEST
@@ -22,4 +23,15 @@ t/template.t
 t/thingy.t
 t/world.t
 t/data/templates.txt
-META.yml                                 Module meta-data (added by MakeMaker)
+t/pod.t
+t/pod_cov.t
+META.yml
+inc/Module/Install.pm
+inc/Module/Install/Base.pm
+inc/Module/Install/Build.pm
+inc/Module/Install/Can.pm
+inc/Module/Install/Fetch.pm
+inc/Module/Install/Makefile.pm
+inc/Module/Install/Metadata.pm
+inc/Module/Install/Win32.pm
+inc/Module/Install/WriteAll.pm

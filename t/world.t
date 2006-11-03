@@ -14,7 +14,7 @@ BEGIN
 can_ok ('Games::3D::World', qw/ 
   new load_from_file save_to_file reload
   load_templates save_templates
-  ID reset_ID
+  ID _reset_ID
   update render register unregister
   things thinkers
   time

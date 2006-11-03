@@ -99,7 +99,7 @@ sub kill
 
   $self->event($src,'kill'); 
 
-  # send SIG_KILLED to all our links to announce our test
+  # send SIG_KILLED to all our links to announce our death
   $self->output($self, SIG_KILLED);
 
   # remove all links from and to ourself 
@@ -820,11 +820,63 @@ Call to remove C<$listener> from the list of outputs from C<$thingy>.
 
 Call to remove C<$listener> from the list of inputs from C<$thingy>. 
 
+=item as_string()
+
+	$thingy->as_string();
+
+Return this thingy as string.
+
+=item event()
+
+	$thingy->event($src,$event);
+
+When an event (frob, use, kill etc) occurs, this routine handles it.
+
+=item get()
+
+=item inputs()
+
+=item kill()
+
+	$thingy->kill();
+
+Sends the thingy itself a KILL signal, then annnounced to all linked
+things the death of the thingy. Unlinks all inputs and outputs,
+and then removes the thingy from the world it resided in.
+
+=item new_flag()
+
+	$thingy->new_flag($name,$value);
+
+Creates a new flag with the given name and value and creates an
+accesssor for it.
+
+=item outputs()
+
+	my @outputs = $thingy->outputs();
+
+Returns a list of all connected outputs of this thingy.
+
+=item unlink()
+
+	$thingy->unlink();
+
+Unlink all inputs and outputs from ourself.
+
+=item update()
+
+	$thingy->update($tick);
+
+If this thingy is going from state A to state B, interpolate values based upon
+current time tick. If reached state B, disable interpolation, and send a 
+signal. Returns 1 while still in transit, 0 when the target state is/was
+reached.
+
 =back
 
 =head1 AUTHORS
 
-(c) 2002 - 2004 Tels <http://bloodgate.com/>
+(c) 2002 - 2004, 2006 Tels <http://bloodgate.com/>
 
 =head1 SEE ALSO
 

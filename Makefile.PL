@@ -1,12 +1,20 @@
-use ExtUtils::MakeMaker;
-# See lib/ExtUtils/MakeMaker.pm for details of how to influence
-# the contents of the Makefile that is written.
-WriteMakefile(
-    'NAME'		=> 'Games::3D',
-    'VERSION_FROM'	=> 'lib/Games/3D.pm', # finds $VERSION
-    'PREREQ_PM'		=> {
-			}, # e.g., Module::Name => 1.1
-    'LIBS'		=> [ ], # e.g., '-lm'
-    'DEFINE'		=> '', # e.g., '-DHAVE_SOMETHING'
-    'INC'		=> '', # e.g., '-I/usr/include/other'
-);
+require 5.8.1;
+use strict;
+
+# Load the Module::Install bundled in ./inc/
+use inc::Module::Install;
+
+# The name of your distribution
+name		'Games-3D';
+
+# Get most of the details from the primary module
+all_from	'lib/Games/3D.pm';
+
+build_requires	'Test::More'	=> 0.42;
+
+license		'gpl';		# v2.0 only 
+
+author		'Tels <nospam-abuse@bloodgate.com>';
+
+# Generate the Makefile
+WriteAll;
